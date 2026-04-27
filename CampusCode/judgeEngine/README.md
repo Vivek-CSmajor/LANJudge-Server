@@ -26,39 +26,43 @@ Takes source file like sub.cpp and compiles it (Lets assume only C++ submissions
 ```
 server_data/
 │
-├── contest/
+├── contest/                     (READ-ONLY during contest)
 │   ├── manifest.json
 │   └── problems/
-│       ├── A/
+│       ├── 1/
 │       │   ├── meta.json
+│       │   ├── statement.md
 │       │   └── tests/
-│       │       ├── in
-│       │       ├── out
-│       │       
-│       │       
+│       │       ├── 1.in
+│       │       ├── 1.out
+│       │       ├── 2.in
+│       │       ├── 2.out
 │       │
-│       └── B/
+│       └── 2/
 │           ├── meta.json
+│           ├── statement.md
 │           └── tests/
 │
-└── runtime/
+└── runtime/                     (MUTABLE)
     ├── db.sqlite
-    ├── submissions/
+    │
+    ├── submissions/             (PERSISTENT)
     │   ├── 101/
     │   │   ├── source.cpp
-    │   │   ├── binary
-    │   │   └── compile.log
+    │   │   ├── compile.log        (only if compile error)
+    │   │   └── failure.json       (only if WA/RE/TLE)
     │   │
     │   └── 102/
     │
-    ├── runs/
-    │   ├── 101/
-    │   │   ├── 1.out
-    │   │   └── 2.out
-    │
-    └── workspaces/
+    └── workspaces/              (EPHEMERAL, PER SUBMISSION)
         ├── 101/
-        └── 102/
+        │   ├── source.cpp
+        │   ├── program
+        │   ├── input.txt
+        │   ├── output.txt
+        │   └── compile.log
+        │
+        └── 102/a
 ```
 manifest.json --> contest configuration
 
@@ -66,7 +70,41 @@ meta.json inside problems --> problem constraints
 
 db.sqlite --> Stores metadata like participants,submissions,verdicts,scoreboard etc. This is the Main and only db for the judgeEngine
 
-runs --> for outputs during execution of tests
-
 workspaces --> easier sandboxing , like if we solving a problem 101 then we copy the binary here,testcase input,run it  etc
 
+DIRECTORY RESPONSIBILITIES
+
+/contest/
+
+* Immutable contest data
+* Testcases, problem configs
+* Never modified during execution
+
+⸻
+
+/runtime/db.sqlite
+
+Stores:
+
+* users
+* submissions metadata
+* verdicts
+* scoreboard
+
+/runtime/submissions/
+
+Persistent record per submission:
+
+* source code (for admin viewing)
+* compile logs (if failure)
+* minimal failure info
+
+/runtime/workspaces/
+
+* One folder per submission
+* Used for:
+    * compilation
+    * execution
+    * output comparison
+* Fully isolated
+* Deleted after execution

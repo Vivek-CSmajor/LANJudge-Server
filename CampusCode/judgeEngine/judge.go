@@ -1,59 +1,68 @@
 package judgeEngine
 
 import (
-	//"database/sql"
-	//"fmt"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+
 	"strings"
-	//"gorm.io/gorm"
-	//"github.com/gin-gonic/gin"
 )
 
-// This File contains logic for judging one submission
-
-// Edit sends when submit button is clicked in the frontend
-// Backend receives metadata + code in JSON format --> takes the code away and stores it in the file system --> compiles it --> runs it against test cases --> returns results to the frontend
-// if output for any test case != expected output --> return "wrong asnwer" else return "accepted"
-
-// This is the Main Function that does everything by calling other funcs
-func JudgeSubmission(sub Submission, expectedOutput string)(string,error){
-	// Store the code in the file system
-	filepath, err := storeSubmission(sub.Code, sub.ID)
+func processSubmission(sub Submission)(string,error){
+	workspaceDir := filepath.Join("server_data","runtime","workspaces",strconv.Itoa(sub.ID))
+	err := os.MkdirAll(workspaceDir, 0755)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create workspace directory: %v", err)
 	}
 
-	// Run and judge
-	result, err := runAndJudge(filepath, expectedOutput)
+	src := filepath.Join("server_data","runtime","submissions",strconv.Itoa(sub.ID),"code.cpp")
+	dst := filepath.Join(workspaceDir,"code.cpp")
+	err = copyFile(src,dst)
 	if err != nil {
-		return result, err
+		return "", fmt.Errorf("failed to copy submission file: %v", err)
 	}
+	// compile and update db with result (if errors skip execution n display errors else continue)
+	exe , err := compile(dst)
+	if err != nil {
+		log.Printf("Compilation error for submission %d is : %v",sub.ID,err)
+		return "", fmt.Errorf("compilation error : %w ", err)
+	}
+	//output becomes : server_data/runtime/workspaces/<id>/code.cpp.out
 	
-	log.Println(result)
-	return "Judging completed"+result, nil
-}
-
-
-
-func storeSubmission(code string, id int) (string, error){
-	err := os.MkdirAll("submissions", 0755) 
+	result, err := runAllTestCases(sub, workspaceDir, exe)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to run test cases: %v", err)
 	}
-	fileName := filepath.Join("submissions",strconv.Itoa(id)+".cpp")
-	err2 := os.WriteFile(fileName,[]byte(code), 0644)
-	if err2 != nil {
-		return "", err
-	}
-	return fileName, err
 
+	os.RemoveAll(workspaceDir)
+	return result,err 
 }
 
+func runAllTestCases(sub Submission,workspaceDir,execPath string) (string,error){
+	testsDir := filepath.Join("server_data","contest","problems",strconv.Itoa(sub.ProblemID),"tests")
+	testFiles := listInputFiles(testsDir)
+	for _, file := range testFiles{
+		testNum := strings.TrimSuffix(file, ".in")
+
+		testInputPath := filepath.Join(testsDir, file)
+		testOutputPath := filepath.Join(testsDir, testNum+".out")
+		result, err := runTestCase(testInputPath,testOutputPath,workspaceDir,execPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to run test case %s: %v", testNum, err)
+		}
+		if result == "Correct" {
+			return "Correct", nil
+		}
+		if result == "Wrong answer" {
+			//store failure.json in submission workspace with details of the failed test case for frontend to display
+			return result , nil
+		}
+	}
+	return "Accepted", nil
+}
 
 func compile(fileName string)(string,error){
 	outputExe := fileName + ".out"
@@ -66,29 +75,47 @@ func compile(fileName string)(string,error){
 	return outputExe, nil
 }
 
-func runAndJudge(fileName string,expectedOutput string) (result string, err error){
-	exe, err := compile(fileName)
-	if err != nil {
-		return "compilation err", err
-	}
-	//run but provide input.txt 
-	inputFile, err := os.Open("input.txt")
+func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (string,error){
+	outputPath := filepath.Join(workspacePath, "output.txt")
+	inputFile, err := os.Open(testInputPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open input file: %v", err)
 	}
 	defer inputFile.Close()
-	cmd := exec.Command(exe)
-	cmd.Stdin = inputFile
-	output, err := cmd.CombinedOutput()
+	outputFile, err := os.Create(outputPath)
 	if err != nil {
-		return "Runtime err", err
+		return "", fmt.Errorf("failed to create output file: %v", err)
 	}
-	// Do something with the compiled output
-	// expectedOutput, _ := os.ReadFile("expected_output.txt")
-	if strings.TrimSpace(string(output)) == strings.TrimSpace(string(expectedOutput)){
-		result = "Accepted :)"
-		return result, nil
+	defer outputFile.Close()
+
+	cmd := exec.Command(execPath)
+	cmd.Dir = workspacePath
+	cmd.Stdin = inputFile
+	cmd.Stdout = outputFile
+
+	err = cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("Runtime error: %v", err)
 	}
-	result = "Wrong Answer :("
-	return result, nil
+	//comparing outputs
+	expectedBytes , _ := os.ReadFile(testOutputPath)
+	actualBytes , _ := os.ReadFile(outputPath)
+
+	expected := normalizeOutput(string(expectedBytes))
+	actual := normalizeOutput(string(actualBytes))
+	
+	if expected == actual {
+		return "Correct", nil
+	}
+	return "Wrong answer", nil
+}
+
+func normalizeOutput(s string) string{
+	s = strings.ReplaceAll(s,"\r\n","\n")//convert windwos line endings to unix
+	lines := strings.Split(s,"\n")
+	for i:= range lines{
+		lines[i] = strings.TrimRight(lines[i],"\t") // remove trailing tabs
+		lines[i] = strings.TrimSpace(lines[i])
+	}
+	return strings.TrimSpace(strings.Join(lines,"\n"))
 }
