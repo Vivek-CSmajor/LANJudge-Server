@@ -3,10 +3,11 @@ package main
 import (
 	// "database/sql"
 	// "log"
-	"fmt"
+	// "fmt"
 	"campuscode/judgeEngine"
 	// "github.com/gin-gonic/gin"
 	//"github.com/mattn/go-sqlite3"
+	"net/http"
 )
 
 // func main(){
@@ -31,38 +32,48 @@ import (
 	
 // }
 
-func main() {
+// func main() {
 
-	// C++ code being submitted
-	code := `
-#include <iostream>
-using namespace std;
+// 	// C++ code being submitted
+// 	code := `
+// #include <iostream>
+// using namespace std;
 
-int main(){
-    int a,b;
-    cin >> a >> b;
-    cout << a + b;
-}
-`
+// int main(){
+//     int a,b;
+//     cin >> a >> b;
+//     cout << a + b;
+// }
+// `
 
+// 	// Simulated submission
+// 	sub := judgeEngine.Submission{
+// 		ID:        1,
+// 		ProblemID: 1,
+// 		Code:      code,
+// 	}
+
+// 	// Expected output for input.txt
+// 	expected := "5"
+
+// 	fmt.Println("Submitting code to judge...")
+
+// 	result, err := judgeEngine.JudgeSubmission(sub, expected)
+
+// 	if err != nil {
+// 		fmt.Println("Judge error:", err)
+// 		return
+// 	}
+
+// 	fmt.Println("Judge result:", result)
+// }
+
+func main(){
 	// Simulated submission
-	sub := judgeEngine.Submission{
-		ID:        1,
-		ProblemID: 1,
-		Code:      code,
-	}
-
-	// Expected output for input.txt
-	expected := "5"
-
-	fmt.Println("Submitting code to judge...")
-
-	result, err := judgeEngine.JudgeSubmission(sub, expected)
-
-	if err != nil {
-		fmt.Println("Judge error:", err)
-		return
-	}
-
-	fmt.Println("Judge result:", result)
+	judgeEngine.InitializeRunTime()
+	judgeEngine.InitDB()
+	judgeEngine.InitializeQueue()
+	judgeEngine.StartWorkers(1)
+	http.HandleFunc("/submit", judgeEngine.SubmitHandler)
+	http.ListenAndServe(":8080", http.DefaultServeMux)
 }
