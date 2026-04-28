@@ -33,10 +33,8 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request){
 	// push to queue
 	submissionQueue <- submissionID
 	if submissionQueue == nil {
-
-    http.Error(w, "queue not initialized", 500)
-
-    return
+		http.Error(w, "queue not initialized", 500)
+    	return
 	}
 	writeJSON(w, 200,SubmitResponse{
 		SubmissionID: submissionID,

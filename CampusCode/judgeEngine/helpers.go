@@ -24,14 +24,13 @@ func saveSubmissionToDB(sub SubmitRequest) int{ // saves submission data to db a
 	return submission.ID
 }
 
-func getSubmissionByID(subID int) (Submission){
-	//return DB.First(&Submission{}, subID)
+func getSubmissionByID(subID int) (Submission, error){
 	var sub Submission 
 	err := DB.First(&sub, subID).Error
 	if err != nil {
-		return Submission{}
+		return Submission{},err
 	}
-	return sub 
+	return sub, nil
 
 }
 
