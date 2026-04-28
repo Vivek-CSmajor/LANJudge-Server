@@ -17,6 +17,7 @@ func processSubmission(sub Submission)(string,error){
 	if err != nil {
 		return "", fmt.Errorf("failed to create workspace directory: %v", err)
 	}
+	defer os.RemoveAll(workspaceDir)
 
 	src := filepath.Join("server_data","runtime","submissions",strconv.Itoa(sub.ID),"code.cpp")
 	dst := filepath.Join(workspaceDir,"code.cpp")
@@ -28,7 +29,7 @@ func processSubmission(sub Submission)(string,error){
 	exe , err := compile(dst)
 	if err != nil {
 		log.Printf("Compilation error for submission %d is : %v",sub.ID,err)
-		return "", fmt.Errorf("compilation error : %w ", err)
+		return string(CompilationError), fmt.Errorf("compilation error : %w ", err)
 	}
 	//output becomes : server_data/runtime/workspaces/<id>/code.cpp.out
 	
@@ -36,8 +37,6 @@ func processSubmission(sub Submission)(string,error){
 	if err != nil {
 		return "", fmt.Errorf("failed to run test cases: %v", err)
 	}
-
-	os.RemoveAll(workspaceDir)
 	return result,err 
 }
 
@@ -45,23 +44,23 @@ func runAllTestCases(sub Submission,workspaceDir,execPath string) (string,error)
 	testsDir := filepath.Join("server_data","contest","problems",strconv.Itoa(sub.ProblemID),"tests")
 	testFiles := listInputFiles(testsDir)
 	for _, file := range testFiles{
-		testNum := strings.TrimSuffix(file, ".in")
-
-		testInputPath := filepath.Join(testsDir, file)
+		//testNum := strings.TrimSuffix(file, ".in")
+		testName := filepath.Base(file)
+		testNum := strings.TrimSuffix(testName,".in")
+		testInputPath := file
 		testOutputPath := filepath.Join(testsDir, testNum+".out")
 		result, err := runTestCase(testInputPath,testOutputPath,workspaceDir,execPath)
+		//if any test fails return WA immediately 
 		if err != nil {
-			return "", fmt.Errorf("failed to run test case %s: %v", testNum, err)
+			return string(RuntimeError), fmt.Errorf("failed to run test case %s: %v", testNum, err)
 		}
-		if result == "Correct" {
-			return "Correct", nil
-		}
-		if result == "Wrong answer" {
+		if result == string(WrongAnswer) {
 			//store failure.json in submission workspace with details of the failed test case for frontend to display
-			return result , nil
+			return string(WrongAnswer) , nil
 		}
 	}
-	return "Accepted", nil
+	//if all tests pass return AC
+	return string(Accepted) , nil
 }
 
 func compile(fileName string)(string,error){
@@ -72,6 +71,13 @@ func compile(fileName string)(string,error){
 	if err != nil {
 		return "", fmt.Errorf("compile err : %s",string(out))
 	}
+	// ensure executable exists and is runnable
+    if err := os.Chmod(outputExe, 0755); err != nil {
+        return "", fmt.Errorf("chmod failed: %v", err)
+    }
+    if _, err := os.Stat(outputExe); err != nil {
+        return "", fmt.Errorf("compiled binary missing: %v", err)
+    }
 	return outputExe, nil
 }
 
@@ -86,16 +92,17 @@ func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (st
 	if err != nil {
 		return "", fmt.Errorf("failed to create output file: %v", err)
 	}
-	defer outputFile.Close()
+	defer outputFile.Close()//defer just makes sure it gets closed at the end of the function execution even if there are errors in between
 
-	cmd := exec.Command(execPath)
+	//cmd := exec.Command(execPath)
+	cmd := exec.Command("./code.cpp.out")
 	cmd.Dir = workspacePath
 	cmd.Stdin = inputFile
 	cmd.Stdout = outputFile
 
 	err = cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("Runtime error: %v", err)
+		return string(RuntimeError), fmt.Errorf("Runtime error: %v", err)
 	}
 	//comparing outputs
 	expectedBytes , _ := os.ReadFile(testOutputPath)
@@ -105,9 +112,10 @@ func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (st
 	actual := normalizeOutput(string(actualBytes))
 	
 	if expected == actual {
-		return "Correct", nil
+		return string(Accepted), nil
 	}
-	return "Wrong answer", nil
+	return string(WrongAnswer), nil
+	
 }
 
 func normalizeOutput(s string) string{

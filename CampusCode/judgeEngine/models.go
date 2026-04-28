@@ -19,6 +19,7 @@ type Submission struct{
 	ProblemID int `json:"problem_id"`
 	Code string `json:"code"`
 	Status string `json:"status"`
+	Verdict SubmissionVerdict `json:"verdict"`
 }
 
 type SubmitRequest  struct { 
