@@ -1,11 +1,15 @@
 package judgeEngine
 
-import "log"
+import (
+	"log"
+	"campuscode/db"
+	"campuscode/models"
+)
 
-var submissionQueue chan int
+var SubmissionQueue chan int
 
 func InitializeQueue(){
-	submissionQueue = make(chan int, 100) // reinitialize the channel
+	SubmissionQueue = make(chan int, 100) // reinitialize the channel
 }
 	
 func StartWorkers(numOfWorkers int){
@@ -15,42 +19,42 @@ for i:=0; i<numOfWorkers; i++{
 }
 
 func workerLoop(workerID int){
-	for submissionID := range submissionQueue{
-		DB.Model(&Submission{}).
+	for submissionID := range SubmissionQueue{
+		db.DB.Model(&models.Submission{}).
 		Where("id = ?",submissionID).
 		Update("status", "Running")
 		log.Printf("worker %d processing submission of id %d",workerID,submissionID)
-		sub, err  := getSubmissionByID(submissionID)
+		sub, err  := db.GetSubmissionByID(submissionID)
 		result , err :=processSubmission(sub) //worker processes a job
 		if err != nil {
 			log.Printf("Error processing submission %d: %v", submissionID, err)
-			DB.Model(&Submission{}).
+			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", RuntimeError)
+			Update("verdict", models.RuntimeError)
 		}
 
-		if result == string(Accepted){
-			DB.Model(&Submission{}).
+		if result == string(models.Accepted){
+			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", Accepted)
-		}else if result == string(WrongAnswer){
-			DB.Model(&Submission{}).
+			Update("verdict", models.Accepted)
+		}else if result == string(models.WrongAnswer){
+			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", WrongAnswer)
-		}else if result == string(CompilationError){
-			DB.Model(&Submission{}).
+			Update("verdict", models.WrongAnswer)
+		}else if result == string(models.CompilationError){
+			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", CompilationError)
-		}else if result == string(TimeLimitExceeded){
-			DB.Model(&Submission{}).
+			Update("verdict", models.CompilationError)
+		}else if result == string(models.TimeLimitExceeded){
+			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", TimeLimitExceeded)
-		}else if result == string(RuntimeError){
-    		DB.Model(&Submission{}).
+			Update("verdict", models.TimeLimitExceeded)
+		}else if result == string(models.RuntimeError){
+    		db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", RuntimeError)
+			Update("verdict", models.RuntimeError)
 		}
-		DB.Model(&Submission{}).
+		db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
 			Update("status", "Done")
 	}
