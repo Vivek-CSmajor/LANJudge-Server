@@ -7,11 +7,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-
+	"campuscode/models"
 	"strings"
+	"campuscode/utils"
 )
 
-func processSubmission(sub Submission)(string,error){
+func processSubmission(sub models.Submission)(string,error){
 	workspaceDir := filepath.Join("server_data","runtime","workspaces",strconv.Itoa(sub.ID))
 	err := os.MkdirAll(workspaceDir, 0755)
 	if err != nil {
@@ -21,7 +22,7 @@ func processSubmission(sub Submission)(string,error){
 
 	src := filepath.Join("server_data","runtime","submissions",strconv.Itoa(sub.ID),"code.cpp")
 	dst := filepath.Join(workspaceDir,"code.cpp")
-	err = copyFile(src,dst)
+	err = utils.CopyFile(src,dst)
 	if err != nil {
 		return "", fmt.Errorf("failed to copy submission file: %v", err)
 	}
@@ -29,7 +30,7 @@ func processSubmission(sub Submission)(string,error){
 	exe , err := compile(dst)
 	if err != nil {
 		log.Printf("Compilation error for submission %d is : %v",sub.ID,err)
-		return string(CompilationError), fmt.Errorf("compilation error : %w ", err)
+		return string(models.CompilationError), fmt.Errorf("compilation error : %w ", err)
 	}
 	//output becomes : server_data/runtime/workspaces/<id>/code.cpp.out
 	
@@ -40,9 +41,9 @@ func processSubmission(sub Submission)(string,error){
 	return result,err 
 }
 
-func runAllTestCases(sub Submission,workspaceDir,execPath string) (string,error){
+func runAllTestCases(sub models.Submission,workspaceDir,execPath string) (string,error){
 	testsDir := filepath.Join("server_data","contest","problems",strconv.Itoa(sub.ProblemID),"tests")
-	testFiles := listInputFiles(testsDir)
+	testFiles := utils.ListInputFiles(testsDir)
 	for _, file := range testFiles{
 		//testNum := strings.TrimSuffix(file, ".in")
 		testName := filepath.Base(file)
@@ -52,15 +53,15 @@ func runAllTestCases(sub Submission,workspaceDir,execPath string) (string,error)
 		result, err := runTestCase(testInputPath,testOutputPath,workspaceDir,execPath)
 		//if any test fails return WA immediately 
 		if err != nil {
-			return string(RuntimeError), fmt.Errorf("failed to run test case %s: %v", testNum, err)
+			return string(models.RuntimeError), fmt.Errorf("failed to run test case %s: %v", testNum, err)
 		}
-		if result == string(WrongAnswer) {
+		if result == string(models.WrongAnswer) {
 			//store failure.json in submission workspace with details of the failed test case for frontend to display
-			return string(WrongAnswer) , nil
+			return string(models.WrongAnswer) , nil
 		}
 	}
 	//if all tests pass return AC
-	return string(Accepted) , nil
+	return string(models.Accepted) , nil
 }
 
 func compile(fileName string)(string,error){
@@ -102,7 +103,7 @@ func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (st
 
 	err = cmd.Run()
 	if err != nil {
-		return string(RuntimeError), fmt.Errorf("Runtime error: %v", err)
+		return string(models.RuntimeError), fmt.Errorf("Runtime error: %v", err)
 	}
 	//comparing outputs
 	expectedBytes , _ := os.ReadFile(testOutputPath)
@@ -112,9 +113,9 @@ func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (st
 	actual := normalizeOutput(string(actualBytes))
 	
 	if expected == actual {
-		return string(Accepted), nil
+		return string(models.Accepted), nil
 	}
-	return string(WrongAnswer), nil
+	return string(models.WrongAnswer), nil
 	
 }
 

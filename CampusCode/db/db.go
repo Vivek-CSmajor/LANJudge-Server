@@ -1,9 +1,8 @@
-package judgeEngine
+package db
 
 import (
-
+	"campuscode/models"
 	"log"
-
 	//"github.com/mattn/go-sqlite3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -17,7 +16,8 @@ func InitDB(){
 		panic(err)
 	}
 	log.Println("DB connection established")
-	db.AutoMigrate(&Submission{})
+	db.AutoMigrate(&models.Submission{},&models.Teams{},&models.Sessions{},&models.DeviceOverride{})
 	
 	DB = db
 }
+

@@ -1,16 +1,17 @@
 package main
 
 import (
+	"campuscode/api"
+	"campuscode/db"
 	"campuscode/judgeEngine"
-	"net/http"
+	
 )
 
 func main(){
-	// Simulated submission
+	//Simulated submission
 	judgeEngine.InitializeRunTime()
-	judgeEngine.InitDB()
+	db.InitDB()
 	judgeEngine.InitializeQueue()
 	judgeEngine.StartWorkers(1)
-	http.HandleFunc("/submit", judgeEngine.SubmitHandler)
-	http.ListenAndServe(":8080", http.DefaultServeMux)
+	api.Server()
 }

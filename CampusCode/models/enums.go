@@ -1,4 +1,4 @@
-package judgeEngine
+package models
 
 type SubmissionVerdict string
 const(
