@@ -63,12 +63,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request){
 		db.DB.Save(&team)
 		login()
 		return
-		
+
 	}else if(team.BoundDeviceID != nil && *team.BoundDeviceID != deviceID){
 		//Case2 : Login again but with diff device
 		//call override
 		http.Error(w,"Device mismatch. Request Override validated by Admin",http.StatusUnauthorized)
 		return
+		
 	}else if(team.BoundDeviceID != nil && *team.BoundDeviceID == deviceID){
 		login()
 		return 

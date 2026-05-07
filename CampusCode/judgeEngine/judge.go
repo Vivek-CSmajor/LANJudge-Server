@@ -1,15 +1,18 @@
 package judgeEngine
 
 import (
+	"bytes"
+	"campuscode/models"
+	"campuscode/utils"
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"campuscode/models"
 	"strings"
-	"campuscode/utils"
+	"time"
 )
 
 func processSubmission(sub models.Submission)(string,error){
@@ -19,7 +22,6 @@ func processSubmission(sub models.Submission)(string,error){
 		return "", fmt.Errorf("failed to create workspace directory: %v", err)
 	}
 	defer os.RemoveAll(workspaceDir)
-
 	src := filepath.Join("server_data","runtime","submissions",strconv.Itoa(sub.ID),"code.cpp")
 	dst := filepath.Join(workspaceDir,"code.cpp")
 	err = utils.CopyFile(src,dst)
@@ -27,30 +29,33 @@ func processSubmission(sub models.Submission)(string,error){
 		return "", fmt.Errorf("failed to copy submission file: %v", err)
 	}
 	// compile and update db with result (if errors skip execution n display errors else continue)
-	exe , err := compile(dst)
+	err = compile(workspaceDir,sub.ID)
 	if err != nil {
 		log.Printf("Compilation error for submission %d is : %v",sub.ID,err)
 		return string(models.CompilationError), fmt.Errorf("compilation error : %w ", err)
 	}
-	//output becomes : server_data/runtime/workspaces/<id>/code.cpp.out
-	
-	result, err := runAllTestCases(sub, workspaceDir, exe)
+	result, err := runAllTestCases(sub, workspaceDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to run test cases: %v", err)
 	}
 	return result,err 
 }
 
-func runAllTestCases(sub models.Submission,workspaceDir,execPath string) (string,error){
+func runAllTestCases(sub models.Submission,workspaceDir string) (string,error){
 	testsDir := filepath.Join("server_data","contest","problems",strconv.Itoa(sub.ProblemID),"tests")
-	testFiles := utils.ListInputFiles(testsDir)
+	testFiles, err := utils.ListInputFiles(testsDir)
+	if err != nil{
+		return "RE",err
+	}
+	log.Println("TEST DIR:", testsDir)
+	log.Println("TEST FILES:", testFiles)
 	for _, file := range testFiles{
 		//testNum := strings.TrimSuffix(file, ".in")
 		testName := filepath.Base(file)
 		testNum := strings.TrimSuffix(testName,".in")
 		testInputPath := file
 		testOutputPath := filepath.Join(testsDir, testNum+".out")
-		result, err := runTestCase(testInputPath,testOutputPath,workspaceDir,execPath)
+		result, err := runTestCase(sub.ID,testInputPath,testOutputPath,workspaceDir)
 		//if any test fails return WA immediately 
 		if err != nil {
 			return string(models.RuntimeError), fmt.Errorf("failed to run test case %s: %v", testNum, err)
@@ -64,67 +69,79 @@ func runAllTestCases(sub models.Submission,workspaceDir,execPath string) (string
 	return string(models.Accepted) , nil
 }
 
-func compile(fileName string)(string,error){
-	outputExe := fileName + ".out"
-	// Compile the code using g++
-	cmd := exec.Command("g++",fileName,"-Wall","-o",outputExe)
-	out, err := cmd.CombinedOutput()
+
+func compile(workspaceDir string, subID int)error{ //in docker
+submissionDir := filepath.Join("server_data","runtime","submissions",strconv.Itoa(subID))
+	// sourcePath := filepath.Join(submissionDir,"code.cpp")
+	// outputBinary := filepath.Join(submissionDir, "program")
+	compileLogPath := filepath.Join(submissionDir, "compile.log")
+	absWorkspaceDir , err := filepath.Abs(workspaceDir)
 	if err != nil {
-		return "", fmt.Errorf("compile err : %s",string(out))
+		return err
 	}
-	// ensure executable exists and is runnable
-    if err := os.Chmod(outputExe, 0755); err != nil {
-        return "", fmt.Errorf("chmod failed: %v", err)
-    }
-    if _, err := os.Stat(outputExe); err != nil {
-        return "", fmt.Errorf("compiled binary missing: %v", err)
-    }
-	return outputExe, nil
+	ctx , cancel := context.WithTimeout( context.Background(), 30*time.Second )
+	defer cancel()
+	cmd := exec.CommandContext(
+		ctx,
+		"docker", "run", "--rm",
+		"--memory=512m",
+		"--cpus=1",
+		"-v", absWorkspaceDir+":/workspace",
+		"-w", "/workspace",
+		"gcc:latest",
+		"bash", "-c",
+		"g++ code.cpp -O2 -std=c++17 -o program",
+	)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err = cmd.Run()
+	_ = os.WriteFile(compileLogPath,out.Bytes(),0644)
+	if ctx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf("compilation timeout")
+	}
+	if err != nil {
+		logBytes, _ := os.ReadFile(
+			filepath.Join(workspaceDir, "compile.log"),
+		)
+		return fmt.Errorf(string(logBytes))
+	}
+	return nil
 }
 
-func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (string,error){
-	outputPath := filepath.Join(workspacePath, "output.txt")
-	inputFile, err := os.Open(testInputPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open input file: %v", err)
-	}
-	defer inputFile.Close()
-	outputFile, err := os.Create(outputPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to create output file: %v", err)
-	}
-	defer outputFile.Close()//defer just makes sure it gets closed at the end of the function execution even if there are errors in between
 
-	//cmd := exec.Command(execPath)
-	cmd := exec.Command("./code.cpp.out")
-	cmd.Dir = workspacePath
-	cmd.Stdin = inputFile
-	cmd.Stdout = outputFile
 
-	err = cmd.Run()
+
+func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath string, workspacePath string) (string, error){
+	inputCopyToPath := filepath.Join(workspacePath,"input.txt")
+	inputBytes, err := os.ReadFile(testInputPath)
 	if err != nil {
-		return string(models.RuntimeError), fmt.Errorf("Runtime error: %v", err)
+    return "", err
 	}
-	//comparing outputs
-	expectedBytes , _ := os.ReadFile(testOutputPath)
-	actualBytes , _ := os.ReadFile(outputPath)
+	err = os.WriteFile(inputCopyToPath,inputBytes,0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to prepare test input: %w", err)
+	}
 
-	expected := normalizeOutput(string(expectedBytes))
-	actual := normalizeOutput(string(actualBytes))
-	
+	stdout,stderr,err := runDocker(submissionID, workspacePath, "./program < /workspace/input.txt",2*time.Second)
+	if err != nil {
+    	if stderr == "TLE" {
+	    	return string(models.TimeLimitExceeded), nil
+		}
+		if strings.TrimSpace(stderr) == "" {
+			return string(models.RuntimeError), fmt.Errorf("docker execution failed: %w", err)
+		}
+	    return string(models.RuntimeError), fmt.Errorf("docker execution failed: %w; stderr: %s", err, strings.TrimSpace(stderr))
+	}
+	expectedBytes, err := os.ReadFile(testExpectedOutputPath)
+	if err != nil {
+		return "exceptedBytes error in runTestCase", err
+	}
+	expected := utils.NormalizeOutput(string(expectedBytes))
+	actual := utils.NormalizeOutput(stdout)
 	if expected == actual {
 		return string(models.Accepted), nil
 	}
 	return string(models.WrongAnswer), nil
-	
 }
 
-func normalizeOutput(s string) string{
-	s = strings.ReplaceAll(s,"\r\n","\n")//convert windwos line endings to unix
-	lines := strings.Split(s,"\n")
-	for i:= range lines{
-		lines[i] = strings.TrimRight(lines[i],"\t") // remove trailing tabs
-		lines[i] = strings.TrimSpace(lines[i])
-	}
-	return strings.TrimSpace(strings.Join(lines,"\n"))
-}

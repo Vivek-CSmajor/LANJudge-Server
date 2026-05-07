@@ -8,7 +8,7 @@ type Submission struct{
 	ID int `json:"id" gorm:"primaryKey"`
 	UserID int `json:"user_id"`
 	ProblemID int `json:"problem_id"`
-	Code string `json:"code"`
+	//Code string `json:"code"`
 	Status string `json:"status"`
 	Verdict SubmissionVerdict `json:"verdict"`
 }

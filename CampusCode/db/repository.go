@@ -8,7 +8,7 @@ func SaveSubmissionToDB(sub models.SubmitRequest) int{ // saves submission data 
 	submission := models.Submission{
 		UserID: sub.UserID,
 		ProblemID: sub.ProblemID,
-		Code: sub.Code,
+		//Code: sub.Code,
 		Status : "Queued",	
 	}
 	DB.Create(&submission)
