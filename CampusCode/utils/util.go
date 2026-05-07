@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/json"
+
 	"io"
 	"log"
 	"math/big"
@@ -44,16 +45,19 @@ func CopyFile(src string, dst string) error{
 	return err
 }
 
-func ListInputFiles(dir string) []string{
+func ListInputFiles(dir string) ([]string, error){
 	var files []string
-	entries, _ := os.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
+	if err != nil{
+		return nil, err
+	}
 	for _, entry := range entries{ //range returns index and value
 		name := entry.Name()
 		if strings.HasSuffix(name, ".in") {
 			files = append(files, filepath.Join(dir, name))
 		}
 	}
-	return files
+	return files, nil
 }
 
 func WriteJSON(w http.ResponseWriter, status int, a any){
@@ -62,3 +66,12 @@ func WriteJSON(w http.ResponseWriter, status int, a any){
 	json.NewEncoder(w).Encode(a)
 }
 
+func NormalizeOutput(s string) string{
+	s = strings.ReplaceAll(s,"\r\n","\n")//convert windwos line endings to unix
+	lines := strings.Split(s,"\n")
+	for i:= range lines{
+		lines[i] = strings.TrimRight(lines[i],"\t") // remove trailing tabs
+		lines[i] = strings.TrimSpace(lines[i])
+	}
+	return strings.TrimSpace(strings.Join(lines,"\n"))
+}

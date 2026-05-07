@@ -50,5 +50,3 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request){
 		Status: "Queued",
 	})
 }
-
-
