@@ -7,4 +7,6 @@ const(
 	TimeLimitExceeded SubmissionVerdict = "TLE"
 	RuntimeError SubmissionVerdict = "RE"
 	CompilationError SubmissionVerdict = "CE"
+	InternalError SubmissionVerdict = "IE"
 )
+

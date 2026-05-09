@@ -1,4 +1,4 @@
-package judgeEngine
+package judge
 
 import (
 	//"fmt"

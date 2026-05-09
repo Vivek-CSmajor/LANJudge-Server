@@ -16,7 +16,7 @@ func InitDB(){
 		panic(err)
 	}
 	log.Println("DB connection established")
-	db.AutoMigrate(&models.Submission{},&models.Teams{},&models.Sessions{},&models.DeviceOverride{})
+	db.AutoMigrate(&models.Submission{},&models.Teams{},&models.Sessions{},&models.DeviceOverride{},&models.Contest{},&models.TeamProblemStats{},&models.ScoreBoard{})
 	
 	DB = db
 }
