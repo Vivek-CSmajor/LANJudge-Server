@@ -3,15 +3,14 @@ package main
 import (
 	"campuscode/api"
 	"campuscode/db"
-	"campuscode/judgeEngine"
-	
+	"campuscode/judge"
 )
 
 func main(){
 	//Simulated submission
-	judgeEngine.InitializeRunTime()
+	judge.InitializeRunTime()
 	db.InitDB()
-	judgeEngine.InitializeQueue()
-	judgeEngine.StartWorkers(1)
+	judge.InitializeQueue()
+	judge.StartWorkers(3)
 	api.Server()
 }

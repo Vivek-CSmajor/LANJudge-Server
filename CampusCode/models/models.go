@@ -1,20 +1,21 @@
 package models
 
-import ( 
+import (
 	"time"
 )
 
 type Submission struct{
 	ID int `json:"id" gorm:"primaryKey"`
-	UserID int `json:"user_id"`
+	TeamID int `json:"team_id"`
 	ProblemID int `json:"problem_id"`
 	//Code string `json:"code"`
 	Status string `json:"status"`
 	Verdict SubmissionVerdict `json:"verdict"`
+	SubmittedAt time.Time `json:"submitted_at"`
 }
 
 type SubmitRequest  struct { 
-	UserID int `json:"user_id"`
+	TeamID int `json:"team_id"`
 	ProblemID int `json:"problem_id"`
 	Code string `json:"code"`
 	//Input string `json:"input"`
@@ -24,8 +25,6 @@ type SubmitResponse struct {
 	SubmissionID int `json:"submission_id"`
 	Status string `json:"status"`
 }
-
-
 
 type Teams struct{
 	ID int `json:"id" gorm:"primaryKey"`
@@ -74,3 +73,33 @@ type LoginRequest struct {
 type LoginResponse struct {
 	SessionToken string `json:"session_token"`	
 }
+
+
+type Contest struct{
+	ID int `json:"id"`
+	Title string `json:"title"`
+	StartTime time.Time `json:"start_time"`
+	EndTime time.Time `json:"end_time"`
+	Status string `json:"status"`
+}
+
+type TeamProblemStats struct {
+	//ID int `gorm:"primaryKey"`
+	// TeamID int `json:"team_id" gorm:"uniqueIndex:idx_team_problem"`//composite uniqueness on team and problem.
+    //ProblemID int `json:"problem_id" gorm:"uniqueIndex:idx_team_problem"`
+	TeamID int `gorm:"primaryKey"`
+	ProblemID int `gorm:"primaryKey"`
+	WrongAttemptCount int `json:"wrong_attempt_count"`
+	Solved bool `json:"solved"`
+	FirstAcTime *time.Time `json:"first_ac_time"`
+	Penalty *int `json:"penalty"`
+}
+
+type ScoreBoard struct {
+	TeamID int `json:"team_id" gorm:"primaryKey"`
+	TotalSolved int `json:"total_solved"`
+	TotalPenalty int `json:"total_penalty"`
+	LastAcTime time.Time `json:"last_ac_time"`
+	Rank int `json:"rank"`
+}
+

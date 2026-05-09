@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"campuscode/db"
-	"campuscode/judgeEngine"
+	"campuscode/judge"
 	"campuscode/models"
 	"campuscode/utils"
 	"encoding/json"
@@ -11,8 +11,8 @@ import (
 	"strconv"
 )
 
-func SubmitHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodPost {//enforces post only for submission
+func SubmitHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost { //enforces post only for submission
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -25,9 +25,9 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request){
 	}
 
 	submissionID := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
-	
+
 	//store code in fs
-	submissionDir := "server_data/runtime/submissions/"+strconv.Itoa(submissionID)
+	submissionDir := "server_data/runtime/submissions/" + strconv.Itoa(submissionID)
 	err = os.MkdirAll(submissionDir, 0755)
 	if err != nil {
 		http.Error(w, "Failed to create submission directory", http.StatusInternalServerError)
@@ -40,13 +40,14 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	// push to queue
-	judgeEngine.SubmissionQueue <- submissionID
-	if judgeEngine.SubmissionQueue == nil {
+	if judge.SubmissionQueue == nil {//exists but aint containing nuthin
 		http.Error(w, "queue not initialized", 500)
-    	return
+		return
 	}
-	utils.WriteJSON(w, 200,models.SubmitResponse{
+	judge.SubmissionQueue <- submissionID
+	
+	utils.WriteJSON(w, 200, models.SubmitResponse{
 		SubmissionID: submissionID,
-		Status: "Queued",
+		Status:       "Queued",
 	})
 }
