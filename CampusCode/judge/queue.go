@@ -1,6 +1,7 @@
 package judge
 
 import (
+	"campuscode/api/ws"
 	"campuscode/db"
 	"campuscode/models"
 	"log"
@@ -46,30 +47,35 @@ func workerLoop(workerID int){
 			//trigger event to update the teamproblemstats and scoreboard
 			sub.Verdict = models.SubmissionVerdict(result)
 			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
+			ws.BroadcastScoreboard()
 		}else if result == string(models.WrongAnswer){
 			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
 			Update("verdict", models.WrongAnswer)
 			sub.Verdict = models.SubmissionVerdict(result)
 			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
+			ws.BroadcastScoreboard()
 		}else if result == string(models.CompilationError){
 			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
 			Update("verdict", models.CompilationError)
 			sub.Verdict = models.SubmissionVerdict(result)
 			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
+			ws.BroadcastScoreboard()
 		}else if result == string(models.TimeLimitExceeded){
 			db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
 			Update("verdict", models.TimeLimitExceeded)
 			sub.Verdict = models.SubmissionVerdict(result)
 			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
+			ws.BroadcastScoreboard()
 		}else if result == string(models.RuntimeError){
     		db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
 			Update("verdict", models.RuntimeError)
 			sub.Verdict = models.SubmissionVerdict(result)
 			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
+			ws.BroadcastScoreboard()
 		}
 		db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
