@@ -1,0 +1,68 @@
+
+// func runTestCase(testInputPath,testOutputPath,workspacePath,execPath string) (string,error){
+// 	outputPath := filepath.Join(workspacePath, "output.txt")
+// 	inputFile, err := os.Open(testInputPath)
+// 	if err != nil {
+// 		return "", fmt.Errorf("failed to open input file: %v", err)
+// 	}
+// 	defer inputFile.Close()
+// 	outputFile, err := os.Create(outputPath)
+// 	if err != nil {
+// 		return "", fmt.Errorf("failed to create output file: %v", err)
+// 	}
+// 	defer outputFile.Close()//defer just makes sure it gets closed at the end of the function execution even if there are errors in between
+
+// 	//cmd := exec.Command(execPath)
+// 	cmd := exec.Command("./code.cpp.out")
+// 	cmd.Dir = workspacePath
+// 	cmd.Stdin = inputFile
+// 	cmd.Stdout = outputFile
+
+// 	err = cmd.Run()
+// 	if err != nil {
+// 		return string(models.RuntimeError), fmt.Errorf("Runtime error: %v", err)
+// 	}
+// 	//comparing outputs
+// 	expectedBytes , _ := os.ReadFile(testOutputPath)
+// 	actualBytes , _ := os.ReadFile(outputPath)
+
+// 	expected := normalizeOutput(string(expectedBytes))
+// 	actual := normalizeOutput(string(actualBytes))
+	
+// 	if expected == actual {
+// 		return string(models.Accepted), nil
+// 	}
+// 	return string(models.WrongAnswer), nil
+	
+// }
+
+
+
+// func compile(fileName string)(string,error){
+// 	outputExe := fileName + ".out"
+// 	// Compile the code using g++
+// 	cmd := exec.Command("g++",fileName,"-Wall","-o",outputExe)
+// 	out, err := cmd.CombinedOutput()
+// 	if err != nil {
+// 		return "", fmt.Errorf("compile err : %s",string(out))
+// 	}
+// 	// ensure executable exists and is runnable
+//     if err := os.Chmod(outputExe, 0755); err != nil {
+//         return "", fmt.Errorf("chmod failed: %v", err)
+//     }
+//     if _, err := os.Stat(outputExe); err != nil {
+//         return "", fmt.Errorf("compiled binary missing: %v", err)
+//     }
+// 	return outputExe, nil
+// }
+
+//The above compile is a bit dogshit. 
+
+
+Use rm -rf serverdata to delete it
+then bash testing/generate_server_data to make the problems
+then go run main.go
+then sqlite3 server_data/runtime/db.sqlite < testing/seed_core.sql to seed contest data
+then ctrl+c to stop the go run main.go
+then again go run main.go
+then bash testing/replay_submissions.sh
