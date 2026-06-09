@@ -1,4 +1,0 @@
-code.cpp: In function 'int main()':
-code.cpp:3:13: error: 'this_does_not_compile' was not declared in this scope
-    3 | int main(){ this_does_not_compile }
-      |             ^~~~~~~~~~~~~~~~~~~~~
