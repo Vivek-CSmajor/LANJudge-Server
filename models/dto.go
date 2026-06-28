@@ -35,5 +35,5 @@ type LoginResponse struct {
 }
 
 type UpdateTeamStatusRequest struct {
-	Status string `json: "status"`
+	Status string `json:"status"`
 }
