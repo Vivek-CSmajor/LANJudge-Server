@@ -75,7 +75,7 @@ type ScoreBoard struct {
 
 type Problem struct {
 	ID int `json:"id" gorm:"primaryKey"`
-	Title string `json:"titel"`
+	Title string `json:"title"`
 	TimeLimit time.Duration `json:"time_limit"`
 	MemoryLimit int `json:"memory_limit"`
 	SolvedCount int `json:"solved_count"`
