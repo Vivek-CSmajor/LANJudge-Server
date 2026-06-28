@@ -21,11 +21,11 @@ func cors(next http.Handler) http.Handler {
 }
 
 func Server() {
-	http.HandleFunc("/submit", handlers.SubmitHandler) // Works
+	http.HandleFunc("/submit", handlers.SubmitHandler)
 
 	//auth rotues
-	http.HandleFunc("/register", handlers.RegisterHandler) //Works
-	http.HandleFunc("/login", handlers.LoginHandler)       //Works
+	http.HandleFunc("/register", handlers.RegisterHandler) 
+	http.HandleFunc("/login", handlers.LoginHandler)       
 	//http.HandleFunc("/logout", handlers.LogoutHandler)
 	//http.HandleFunc("/admin/override/{id}", handlers.AdminOverrideHandler)
 
@@ -33,7 +33,7 @@ func Server() {
 	http.HandleFunc("/problems/{id}", handlers.ProblemHandler)
 
 	//contest handlers
-	//http.HandleFunc("/contests", handlers.ContestsHandler) // contest metadata
+	//http.HandleFunc("/contests", handlers.ContestsHandler) 
 
 	//scoreboard
 	http.HandleFunc("/scoreboard", handlers.ScoreboardHandler)
