@@ -1,7 +1,6 @@
 package db
 
 import (
-
 	"campuscode/models"
 	"log"
 	"time"
@@ -30,13 +29,17 @@ func GetSubmissionByID(subID int) (models.Submission, error){
 }
 
 //i write like this as my first language was c# and it folllows this repository thing very strictly
-func RegisterTeamRepository(req models.RegisterResponse){
+func RegisterTeamRepository(req models.RegisterResponse)error{
 	registration := models.Teams{
 		Name : req.Name,
 		LoginCode: req.LoginCode,
 		BoundDeviceID: nil,
 	}
-	DB.Create(&registration)
+	err := DB.Create(&registration).Error
+	if err !=nil {
+		return err
+	}
+	return nil
 }
 
 func UpdateTeamProblemStatsAndScoreboard(sub models.Submission,startTime time.Time){
@@ -50,9 +53,12 @@ func UpdateTeamProblemStatsAndScoreboard(sub models.Submission,startTime time.Ti
 		Penalty: nil,
 	})
 	var team models.ScoreBoard
+	var t models.Teams
+	DB.First(&t,stats.TeamID)
 	DB.FirstOrCreate(&team, models.ScoreBoard{
 		TeamID: stats.TeamID,
 	})
+	team.TeamName = t.Name
 	//case 2 already solved
 	if(stats.Solved == true){
 		return
@@ -90,4 +96,18 @@ func GetAllProblems()([]models.Problem, error){
 		return nil,  err 
 	}
 	return problems, nil
+}
+
+func GetTeamFromSubmission(token string)(models.Teams,error){
+	var team models.Teams
+	var session models.Sessions
+	err := DB.Where("session_token = ?",token).Find(&session).Error
+	if err != nil{
+		return models.Teams{}, err
+	}
+	err = DB.First(&team,session.TeamID).Error
+	if err != nil {
+		return models.Teams{},err
+	}
+	return team,err
 }

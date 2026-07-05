@@ -66,3 +66,6 @@ then sqlite3 server_data/runtime/db.sqlite < testing/seed_core.sql to seed conte
 then ctrl+c to stop the go run main.go
 then again go run main.go
 then bash testing/replay_submissions.sh
+
+sqlite3 server_data/runtime/db.sqlite < /Users/snoopy/CampusCode/CampusCode-Server/testing/seed_core.sql
+to seed problems in the db  

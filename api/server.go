@@ -9,7 +9,7 @@ import (
 func cors(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Device-ID")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Device-ID,X-Session-Token")
         w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
 
         if r.Method == http.MethodOptions {
@@ -22,6 +22,7 @@ func cors(next http.Handler) http.Handler {
 
 func Server() {
 	http.HandleFunc("/submit", handlers.SubmitHandler)
+	http.HandleFunc("/submission/{id}",handlers.GetSubmissionHandler)
 
 	//auth rotues
 	http.HandleFunc("/register", handlers.RegisterHandler) 
@@ -42,5 +43,5 @@ func Server() {
 	http.HandleFunc("/admin/submissions",handlers.AdminGetSubmissionsHandler)
 	http.HandleFunc("/admin/submissions/{id}", handlers.AdminGetSubmissionHandler)
 	http.HandleFunc("/admin/teams/{id}", handlers.AdminChangeTeamStatusHandler)
-	http.ListenAndServe(":8080", cors(http.DefaultServeMux))
+	http.ListenAndServe(":8080", loggingMiddleware(cors(http.DefaultServeMux)))
 }

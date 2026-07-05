@@ -28,7 +28,10 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		Name : req.Name,
 		LoginCode: loginCode,
 	}
-	db.RegisterTeamRepository(res)
+	err = db.RegisterTeamRepository(res);if err != nil{
+		http.Error(w,"Team may already exists", http.StatusConflict) 
+		return 
+	}
 	log.Println("Team Registered")
 	utils.WriteJSON(w ,200,res)
 }

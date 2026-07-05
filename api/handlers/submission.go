@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+
 )
 
 func SubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,9 +24,11 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
+	token := r.Header.Get("X-Session-Token")
+	var session models.Sessions
+	db.DB.Where("session_token = ? AND active = true",token).First(&session)
+	req.TeamID = session.TeamID
 	submissionID := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
-
 	//store code in fs
 	submissionDir := "server_data/runtime/submissions/" + strconv.Itoa(submissionID)
 	err = os.MkdirAll(submissionDir, 0755)
@@ -52,4 +55,17 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
+func GetSubmissionHandler(w http.ResponseWriter,r *http.Request){
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	//id := strings.TrimPrefix(r.URL.Path,"/submissions/")
+	id := r.PathValue("id")
+	var submission models.Submission
+	err := db.DB.First(&submission,id).Error
+	if err != nil{
+		http.Error(w,"Submission Not found",http.StatusNotFound)
+	}
+	utils.WriteJSON(w,200,submission)
+}

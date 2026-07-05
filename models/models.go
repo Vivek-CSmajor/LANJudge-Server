@@ -67,6 +67,7 @@ type TeamProblemStats struct {
 
 type ScoreBoard struct {
 	TeamID int `json:"team_id" gorm:"primaryKey"`
+	TeamName string `json:"team_name"`
 	TotalSolved int `json:"total_solved"`
 	TotalPenalty int `json:"total_penalty"`
 	LastAcTime time.Time `json:"last_ac_time"`
