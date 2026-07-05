@@ -10,19 +10,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
 
 func processSubmission(sub models.Submission)(string,error){
-	workspaceDir := filepath.Join("server_data","runtime","workspaces",strconv.Itoa(sub.ID))
+	workspaceDir := WorkspacePathByID(sub.ID)
 	err := os.MkdirAll(workspaceDir, 0755)
 	if err != nil {
 		return string(models.InternalError), fmt.Errorf("failed to create workspace directory: %v", err)
 	}
 	defer os.RemoveAll(workspaceDir)
-	src := filepath.Join("server_data","runtime","submissions",strconv.Itoa(sub.ID),"code.cpp")
+	src := filepath.Join(SubmissionPathByID(sub.ID),"code.cpp")
 	dst := filepath.Join(workspaceDir,"code.cpp")
 	err = utils.CopyFile(src,dst)
 	if err != nil {
@@ -42,15 +41,12 @@ func processSubmission(sub models.Submission)(string,error){
 }
 
 func runAllTestCases(sub models.Submission,workspaceDir string) (string,error){
-	testsDir := filepath.Join("server_data","contest","problems",strconv.Itoa(sub.ProblemID),"tests")
+	testsDir := TestsDir(sub.ProblemID)
 	testFiles, err := utils.ListInputFiles(testsDir)
 	if err != nil{
 		return string(models.InternalError),err
 	}
-	log.Println("TEST DIR:", testsDir)
-	log.Println("TEST FILES:", testFiles)
 	for _, file := range testFiles{
-		//testNum := strings.TrimSuffix(file, ".in")
 		testName := filepath.Base(file)
 		testNum := strings.TrimSuffix(testName,".in")
 		testInputPath := file
@@ -71,11 +67,12 @@ func runAllTestCases(sub models.Submission,workspaceDir string) (string,error){
 
 
 func compile(workspaceDir string, subID int)error{ //in docker
-submissionDir := filepath.Join("server_data","runtime","submissions",strconv.Itoa(subID))
+	submissionDir := SubmissionPathByID(subID)
 	// sourcePath := filepath.Join(submissionDir,"code.cpp")
 	// outputBinary := filepath.Join(submissionDir, "program")
 	compileLogPath := filepath.Join(submissionDir, "compile.log")
-	absWorkspaceDir , err := filepath.Abs(workspaceDir)
+	absWorkspaceDir , err := filepath.Abs(workspaceDir)//is unamibguous regardless of pwd, it always points to exactly one location not mattter who or where its run from.
+	//its needed cuz docker daemon is a sperate process inside a vm and it doesnt share the pwd of the go server.
 	if err != nil {
 		return err
 	}
@@ -105,6 +102,7 @@ submissionDir := filepath.Join("server_data","runtime","submissions",strconv.Ito
 		// 	filepath.Join(workspaceDir, "compile.log"),
 		// )
 		//return fmt.Errorf(string(logBytes))
+		//implement compile.log write , write No CE if sucessfully compiles (no syntax err)
 		return fmt.Errorf(out.String())
 	}
 	return nil
@@ -117,14 +115,14 @@ func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath 
 	inputCopyToPath := filepath.Join(workspacePath,"input.txt")
 	inputBytes, err := os.ReadFile(testInputPath)
 	if err != nil {
-    return string(models.InternalError), err
+    	return string(models.InternalError), err
 	}
 	err = os.WriteFile(inputCopyToPath,inputBytes,0644)
 	if err != nil {
 		return string(models.InternalError), fmt.Errorf("failed to prepare test input: %w", err)
 	}
 
-	stdout,stderr,err := runDocker(submissionID, workspacePath, "./program < /workspace/input.txt",15*time.Second)
+	stdout,stderr,err := runDocker(submissionID, workspacePath, "./program < /workspace/input.txt",10*time.Second)
 	if err != nil {
     	if stderr == "TLE" {
 	    	return string(models.TimeLimitExceeded), nil

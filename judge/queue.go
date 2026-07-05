@@ -40,43 +40,12 @@ func workerLoop(workerID int){
 			Update("verdict", models.RuntimeError)
 			sub.Verdict = models.SubmissionVerdict(result)
 		}
-		if result == string(models.Accepted){
-			db.DB.Model(&models.Submission{}).
+		db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
-			Update("verdict", models.Accepted)
-			//trigger event to update the teamproblemstats and scoreboard
+			Update("verdict", result)
 			sub.Verdict = models.SubmissionVerdict(result)
 			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
 			ws.BroadcastScoreboard()
-		}else if result == string(models.WrongAnswer){
-			db.DB.Model(&models.Submission{}).
-			Where("id = ?",submissionID).
-			Update("verdict", models.WrongAnswer)
-			sub.Verdict = models.SubmissionVerdict(result)
-			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
-			ws.BroadcastScoreboard()
-		}else if result == string(models.CompilationError){
-			db.DB.Model(&models.Submission{}).
-			Where("id = ?",submissionID).
-			Update("verdict", models.CompilationError)
-			sub.Verdict = models.SubmissionVerdict(result)
-			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
-			ws.BroadcastScoreboard()
-		}else if result == string(models.TimeLimitExceeded){
-			db.DB.Model(&models.Submission{}).
-			Where("id = ?",submissionID).
-			Update("verdict", models.TimeLimitExceeded)
-			sub.Verdict = models.SubmissionVerdict(result)
-			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
-			ws.BroadcastScoreboard()
-		}else if result == string(models.RuntimeError){
-    		db.DB.Model(&models.Submission{}).
-			Where("id = ?",submissionID).
-			Update("verdict", models.RuntimeError)
-			sub.Verdict = models.SubmissionVerdict(result)
-			db.UpdateTeamProblemStatsAndScoreboard(sub,contest.StartTime)
-			ws.BroadcastScoreboard()
-		}
 		db.DB.Model(&models.Submission{}).
 			Where("id = ?",submissionID).
 			Update("status", "Done")
