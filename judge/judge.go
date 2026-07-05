@@ -124,7 +124,7 @@ func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath 
 		return string(models.InternalError), fmt.Errorf("failed to prepare test input: %w", err)
 	}
 
-	stdout,stderr,err := runDocker(submissionID, workspacePath, "./program < /workspace/input.txt",2*time.Second)
+	stdout,stderr,err := runDocker(submissionID, workspacePath, "./program < /workspace/input.txt",15*time.Second)
 	if err != nil {
     	if stderr == "TLE" {
 	    	return string(models.TimeLimitExceeded), nil

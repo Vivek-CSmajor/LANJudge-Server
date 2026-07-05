@@ -4,7 +4,7 @@ import (
 	"campuscode/api/ws"
 	"campuscode/db"
 	"campuscode/models"
-
+	"encoding/json"
 
 	//"campuscode/utils"
 	"log"
@@ -44,6 +44,8 @@ func ScoreboardHandler(w http.ResponseWriter, r *http.Request){
 	log.Println(scoreboard)
 	//the conn writejson below could be done in a forloop to broadcast the scorebaord to every active connection
 	// so we wouldnt have to write the lower conn.WriteJson(scorebaord) thing and just mark the conn = true
+	b, _ := json.MarshalIndent(scoreboard, "" , " ")
+	log.Println("Scoreboard payload : \n",string(b))
 	err = conn.WriteJSON(scoreboard)
 	if err != nil {
 		http.Error(w,"WS error when writing json scoreboard to conn", http.StatusInternalServerError)
