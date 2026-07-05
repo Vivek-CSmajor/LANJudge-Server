@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"strconv"
-
 )
 
 func SubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +28,7 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	req.TeamID = session.TeamID
 	submissionID := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
 	//store code in fs
-	submissionDir := "server_data/runtime/submissions/" + strconv.Itoa(submissionID)
+	submissionDir := judge.SubmissionPathByID(submissionID)
 	err = os.MkdirAll(submissionDir, 0755)
 	if err != nil {
 		http.Error(w, "Failed to create submission directory", http.StatusInternalServerError)

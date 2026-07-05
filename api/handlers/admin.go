@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"campuscode/db"
+	"campuscode/judge"
 	"campuscode/models"
 	"campuscode/utils"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -51,8 +52,9 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	submissionID := strings.TrimPrefix(r.URL.Path,"/submissions/")
-	submissionPath := filepath.Join("server_data","runtime","submissions",submissionID)
+	submissionID := r.PathValue("id")
+	subID,_ := strconv.Atoi(submissionID)
+	submissionPath := judge.SubmissionPathByID(subID)
 	var submission models.Submission
 	db.DB.Find(&submission, submissionID)
 	code, err:= os.ReadFile(submissionPath+"code.cpp")
