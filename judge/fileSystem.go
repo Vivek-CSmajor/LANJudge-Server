@@ -3,15 +3,20 @@ package judge
 import (
 	//"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 )
-const basePath  = "server_data"
 
-func InitializeRunTime()error{
+const basePath = "server_data"
+const contestPath = basePath + "/contest"
+const runtimePath = basePath + "/runtime"
+
+func InitializeRunTime() error {
 	// create runtime directory if it doesn't exist
 	fs := FileSystem{
-		BasePath: basePath,
-		ContestPath: basePath + "/contest",
-		Runtime: basePath + "/runtime",
+		BasePath:    basePath,
+		ContestPath: contestPath,
+		Runtime:     runtimePath,
 	}
 	paths := []string{
 		fs.Runtime,
@@ -20,38 +25,62 @@ func InitializeRunTime()error{
 	}
 	for _, path := range paths { // 0755 is rwxr-xr-x
 		if err := os.MkdirAll(path, 0755); err != nil {
-			return err 
+			return err
 		}
 	}
 	return nil
 }
 
+// since the fucntions are logically of filesystem type its bettter to write them as methods instead of functions
+// ok apparently i didnt do the above thing, its complicated,basically we should 
+/*
+Make them real methods — swap runtimePath for fs.Runtime inside each one.
+Payoff: you can build a FileSystem{Runtime: "/tmp/test_data/runtime"} in a test and get
+isolated paths, no shared-state test pollution, no touching real server_data. 
+This is probably the actual point of having the struct.
+Make them plain functions — func WorkspacePathByID(id int) string, no receiver, 
+no fs := needed anywhere. Simpler if you're confident you'll never need more than one 
+filesystem "configuration" (e.g. this is a single-tenant judge server, always server_data).
+*/
+func WorkspacePathByID(id int) string {
+	path := filepath.Join(runtimePath, "workspaces", strconv.Itoa(id))
+	return path
+}
 
+func SubmissionPathByID(id int) string {
+	path := filepath.Join(runtimePath, "submissions", strconv.Itoa(id))
+	return path
+}
+
+func TestsDir(id int) string { //asdasdasd
+	path := filepath.Join(contestPath, "problems", strconv.Itoa(id),"tests")
+	return path
+}
 
 // These exist to make parsing JSON recieved from the cloud backend to be deserialized
 type Manifest struct {
 	//ContestID string `json:"contest_id"`
-	Name string `json:"name"`
-	DurationMinutes int `json:"duration_minutes"`
-	Problems []Problem `json:"problems"`
+	Name            string    `json:"name"`
+	DurationMinutes int       `json:"duration_minutes"`
+	Problems        []Problem `json:"problems"`
 }
 
 type Problem struct {
-	ID string `json:"id"`
+	ID   string `json:"id"`
 	Path string `json:"path"`
 }
 
 type ProblemMeta struct {
-	TimeLimitMS int `json:"time_limit_ms"`
+	TimeLimitMS   int `json:"time_limit_ms"`
 	MemoryLimitMB int `json:"memory_limit_mb"`
 }
 
 type FileSystem struct {
-	BasePath string 
-	ContestPath string 
-	Runtime string
+	BasePath    string
+	ContestPath string
+	Runtime     string
 }
 
-
-
-
+func (f FileSystem) WorkspacePathByID(d int) any {
+	panic("unimplemented")
+}
