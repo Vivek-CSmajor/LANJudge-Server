@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 )
+var ActiveContest *Contest // in mem
 
 type Submission struct{
 	ID int `json:"id" gorm:"primaryKey"`
@@ -50,7 +51,7 @@ type Contest struct{
 	Title string `json:"title"`
 	StartTime time.Time `json:"start_time"`
 	EndTime time.Time `json:"end_time"`
-	Status string `json:"status"`
+	Status ContestStatus `json:"status"`
 }
 
 type TeamProblemStats struct {

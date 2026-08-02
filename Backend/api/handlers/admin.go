@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"campuscode/api/ws"
 	"campuscode/db"
 	"campuscode/judge"
 	"campuscode/models"
@@ -10,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 )
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +35,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("Team Registered")
 	utils.WriteJSON(w ,200,res)
-}
+} 
 
 func AdminGetSubmissionsHandler(w http.ResponseWriter, r *http.Request){
 	if r.Method != http.MethodGet{
@@ -57,8 +57,9 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 	submissionPath := judge.SubmissionPathByID(subID)
 	var submission models.Submission
 	db.DB.Find(&submission, submissionID)
-	code, err:= os.ReadFile(submissionPath+"code.cpp")
-	compileLog , err := os.ReadFile(submissionPath+"compile.log")
+	//submissionPath = filepath.Join(submissionPath,"/")
+	code, err:= os.ReadFile(submissionPath+"/code.cpp")
+	compileLog , err := os.ReadFile(submissionPath+"/compile.log")
 	if err != nil{
 		http.Error(w, "internal 123124", http.StatusInternalServerError)
 		return
@@ -95,7 +96,7 @@ func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "internal error ", http.StatusInternalServerError)
 		return
 	}
-	teamID := strings.TrimSuffix(r.URL.Path,"/teams/")
+	teamID := r.PathValue("id")
 	db.DB.Model(&models.Teams{}).Where("id = ?",teamID).Update("status",req.Status)
 	utils.WriteJSON(w,200,"Team Status Updated")
 	//disabled teams should be not be able to view anything on their screen exept a pop up that cant be removed saying "dsiabled"
@@ -103,3 +104,31 @@ func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request){
 	//disqualified teams should be ignored in scoreboard during ordering and push them to bottom and sort on problems only on enabled teams
 }
 
+func AdminChangeContestState(w http.ResponseWriter, r *http.Request){
+	// should be path because its a partial update like duhhh bitch
+	if r.Method != http.MethodPatch{
+		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
+		return
+	}
+	var req models.ChangeContestState
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "internal error ", http.StatusInternalServerError)
+		return
+	}	
+	models.ActiveContest.StartTime = req.StartTime
+	models.ActiveContest.EndTime = req.EndTime
+	models.ActiveContest.Status = req.Status
+	db.DB.Save(models.ActiveContest)//believe me somehow its saving to the contests table
+	//cuz the active contest is a pointer in memory so saving it db takes the pointer, goes to matching row with that id 
+	ws.BroadcastTime()
+	utils.WriteJSON(w,200,models.ActiveContest)
+}
+
+func AdminGetScoreboard(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodGet{
+		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
+		return
+	}
+	ScoreboardHandler(w,r)
+}

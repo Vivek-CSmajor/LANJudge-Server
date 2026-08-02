@@ -1,6 +1,6 @@
 package models
 
-import()
+import "time"
 
 type SubmitRequest  struct { 
 	TeamID int `json:"team_id"`
@@ -37,3 +37,10 @@ type LoginResponse struct {
 type UpdateTeamStatusRequest struct {
 	Status string `json:"status"`
 }
+
+type ChangeContestState struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime time.Time	`json:"end_time"`
+	Status ContestStatus `json:"status"`
+}
+
