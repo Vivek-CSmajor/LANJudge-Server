@@ -10,3 +10,10 @@ const(
 	InternalError SubmissionVerdict = "IE"
 )
 
+type ContestStatus string
+const (
+	ContestPending ContestStatus = "pending"
+	ContestActive  ContestStatus = "active"
+	ContestPaused  ContestStatus = "paused"
+	ContestEnded   ContestStatus = "ended"
+)

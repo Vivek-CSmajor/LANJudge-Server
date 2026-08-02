@@ -98,6 +98,21 @@ func GetAllProblems()([]models.Problem, error){
 	return problems, nil
 }
 
+func LoadOrInitContest() *models.Contest {
+	var contest models.Contest
+	err := DB.First(&contest).Error
+	if err != nil {
+		contest = models.Contest{
+			Title:     "Contest",
+			StartTime: time.Now(),
+			EndTime:   time.Now(),
+			Status:    models.ContestPending,
+		}
+		DB.Create(&contest)
+	}
+	return &contest
+}
+
 func GetTeamFromSubmission(token string)(models.Teams,error){
 	var team models.Teams
 	var session models.Sessions

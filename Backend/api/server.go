@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"campuscode/api/handlers"
+	"campuscode/api/ws"
 )
 
 func cors(next http.Handler) http.Handler {
@@ -43,5 +44,13 @@ func Server() {
 	http.HandleFunc("/admin/submissions",handlers.AdminGetSubmissionsHandler)
 	http.HandleFunc("/admin/submissions/{id}", handlers.AdminGetSubmissionHandler)
 	http.HandleFunc("/admin/teams/{id}", handlers.AdminChangeTeamStatusHandler)
+	http.HandleFunc("/admin/teams",handlers.AdminGetTeamsHandler)
+	http.HandleFunc("/admin/scoreboard",handlers.AdminGetScoreboard)
+
+
+	http.HandleFunc("/admin/contest",handlers.AdminChangeContestState)
+
+	ws.StartTimeSyncTicker()
+
 	http.ListenAndServe(":8080", loggingMiddleware(cors(http.DefaultServeMux)))
 }
