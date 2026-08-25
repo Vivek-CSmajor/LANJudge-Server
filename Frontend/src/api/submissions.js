@@ -11,3 +11,9 @@ export async function fetchSubmissionDetail(id) {
   if (!res.ok) throw new Error(`Failed to load submission #${id} (${res.status})`)
   return res.json()
 }
+
+export async function rejudgeSubmission(id) {
+  const res = await apiFetch(`/admin/submissions/${id}/rejudge`, { method: 'POST' })
+  if (!res.ok) throw new Error(`Failed to rejudge submission #${id} (${res.status})`)
+  return res.json()
+}

@@ -3,6 +3,7 @@ import Submissions from './pages/Submissions'
 import Teams from './pages/Teams'
 import Scoreboard from './pages/Scoreboard'
 import Contest from './pages/Contest'
+import Overrides from './pages/Overrides'
 import './App.css'
 
 const TABS = [
@@ -10,6 +11,7 @@ const TABS = [
   { id: 'teams', label: 'Teams', Component: Teams },
   { id: 'scoreboard', label: 'Scoreboard', Component: Scoreboard },
   { id: 'contest', label: 'Contest', Component: Contest },
+  { id: 'overrides', label: 'Overrides', Component: Overrides },
 ]
 
 export default function App() {

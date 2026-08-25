@@ -22,10 +22,8 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	token := r.Header.Get("X-Session-Token")
-	var session models.Sessions
-	db.DB.Where("session_token = ? AND active = true",token).First(&session)
-	req.TeamID = session.TeamID
+	team := TeamFromContext(r)
+	req.TeamID = team.ID
 	submissionID := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
 	//store code in fs
 	submissionDir := judge.SubmissionPathByID(submissionID)
@@ -64,6 +62,12 @@ func GetSubmissionHandler(w http.ResponseWriter,r *http.Request){
 	err := db.DB.First(&submission,id).Error
 	if err != nil{
 		http.Error(w,"Submission Not found",http.StatusNotFound)
+		return
+	}
+	team := TeamFromContext(r)
+	if submission.TeamID != team.ID {
+		http.Error(w,"Forbidden",http.StatusForbidden)
+		return
 	}
 	utils.WriteJSON(w,200,submission)
 }

@@ -67,6 +67,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request){
 	}else if(team.BoundDeviceID != nil && *team.BoundDeviceID != deviceID){
 		//Case2 : Login again but with diff device
 		//call override
+		db.DB.Create(&models.DeviceOverride{TeamID: team.ID, NewDeviceID: deviceID,Status: "pending", CreatedAt: time.Now()})
 		http.Error(w,"Device mismatch. Request Override validated by Admin",http.StatusUnauthorized)
 		return
 		

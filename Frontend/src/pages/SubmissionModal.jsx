@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
-import { fetchSubmissionDetail } from '../api/submissions'
+import { X, RefreshCw } from 'lucide-react'
+import { fetchSubmissionDetail, rejudgeSubmission } from '../api/submissions'
 import './SubmissionModal.css'
 
 export default function SubmissionModal({ submissionId, onClose }) {
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState(null)
+  const [rejudging, setRejudging] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -15,14 +16,30 @@ export default function SubmissionModal({ submissionId, onClose }) {
     return () => { cancelled = true }
   }, [submissionId])
 
+  function handleRejudge() {
+    setRejudging(true)
+    setError(null)
+    rejudgeSubmission(submissionId)
+      .then(() => fetchSubmissionDetail(submissionId))
+      .then(setDetail)
+      .catch((e) => setError(e.message))
+      .finally(() => setRejudging(false))
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Submission #{submissionId}</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
-            <X size={18} />
-          </button>
+          <div className="modal-header-actions">
+            <button className="refresh-btn" onClick={handleRejudge} disabled={rejudging}>
+              <RefreshCw size={14} className={rejudging ? 'spin' : ''} />
+              {rejudging ? 'Rejudging…' : 'Rejudge'}
+            </button>
+            <button className="modal-close" onClick={onClose} aria-label="Close">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {error && <div className="banner banner--error">{error}</div>}

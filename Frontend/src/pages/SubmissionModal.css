@@ -35,6 +35,12 @@
   margin: 0;
 }
 
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .modal-close {
   background: none;
   border: none;

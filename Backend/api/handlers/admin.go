@@ -75,6 +75,31 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 	utils.WriteJSON(w,200,resp)
 }
 
+func AdminRejudgeSubmissionHandler(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodPost{
+		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
+		return
+	}
+	submissionID := r.PathValue("id")
+	subID,_ := strconv.Atoi(submissionID)
+	sub, err := db.GetSubmissionByID(subID)
+	if err != nil{
+		http.Error(w, "Submission not found", http.StatusNotFound)
+		return
+	}
+	sub.Status = "Queued"
+	sub.Verdict = ""
+	db.DB.Save(&sub)
+
+	if judge.SubmissionQueue == nil{
+		http.Error(w, "queue not initialized", http.StatusInternalServerError)
+		return
+	}
+	judge.SubmissionQueue <- subID
+
+	utils.WriteJSON(w,200,sub)
+}
+
 func AdminGetTeamsHandler(w http.ResponseWriter, r *http.Request){
 	if r.Method != http.MethodGet{
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
@@ -131,4 +156,41 @@ func AdminGetScoreboard(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	ScoreboardHandler(w,r)
+}
+
+func AdminGetOverridesHandler(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodGet{
+		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
+		return
+	}
+	var overrides []models.DeviceOverride
+	db.DB.Find(&overrides)
+	utils.WriteJSON(w,200,overrides)
+}
+
+func AdminApproveOverride(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodPost{
+		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
+		return
+	}
+	id := r.PathValue("id")
+	var req struct {
+		Action string `json:"action"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "internal error ", http.StatusInternalServerError)
+		return
+	}
+	var overrideRecord models.DeviceOverride
+	db.DB.First(&overrideRecord,"id = ?",id)
+	if req.Action == "approve"{
+		overrideRecord.Status = "approved"
+		db.DB.Model(&models.Teams{}).Where("id = ?",overrideRecord.TeamID).Update("bound_device_id",overrideRecord.NewDeviceID)
+		db.DB.Model(&models.Sessions{}).Where("team_id = ?",overrideRecord.TeamID).Update("active",false)
+	}else if req.Action == "reject"{
+		overrideRecord.Status = "rejected"
+	}
+	db.DB.Save(&overrideRecord)
+	utils.WriteJSON(w,200,overrideRecord)
 }
