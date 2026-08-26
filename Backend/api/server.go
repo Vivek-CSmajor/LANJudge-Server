@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 	//"campuscode/api/middleware"
 	"campuscode/api/handlers"
@@ -22,6 +23,8 @@ func cors(next http.Handler) http.Handler {
 }
 
 func Server() {
+	http.HandleFunc("/health", handlers.HealthHandler)
+
 	http.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitHandler))
 	http.HandleFunc("/submission/{id}",handlers.RequireAuth(handlers.GetSubmissionHandler))
 
@@ -54,5 +57,9 @@ func Server() {
 
 	ws.StartTimeSyncTicker()
 
-	http.ListenAndServe(":8080", handlers.LoggingMiddleware(cors(http.DefaultServeMux)))
+	log.Println("Server listening on :8080")
+	err := http.ListenAndServe(":8080", handlers.LoggingMiddleware(cors(http.DefaultServeMux)))
+	if err != nil {
+		log.Fatal("Server failed to start: ", err)
+	}
 }
