@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func runDocker(submissionID int,workspacePath string, command string,timeoout time.Duration)(string,string,error){
+func runDocker(submissionID int,workspacePath string, command string,timeoout time.Duration,spec LanguageSpec)(string,string,error){
 	ctx, cancel := context.WithTimeout(context.Background(), timeoout)//here timeout is passed into it from the problems Time limit
 	defer cancel()
 	absWorkspacePath , err := filepath.Abs(workspacePath)
@@ -19,14 +19,13 @@ func runDocker(submissionID int,workspacePath string, command string,timeoout ti
 	cmd := exec.CommandContext(
 		ctx,
 		"docker", "run", "--rm",
-
 		"--memory=256m",
 		"--cpus=0.5",
 		"--network=none",
 		"--pids-limit=64",
 		"-v", absWorkspacePath+":/workspace",
 		"-w", "/workspace",
-		"gcc:latest",
+		spec.Image,
 		"bash", "-c", command,
 	)
 	var stdout , stderr bytes.Buffer //two in memory buffers , growable bytes arrays

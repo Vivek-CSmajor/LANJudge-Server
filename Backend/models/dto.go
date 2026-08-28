@@ -7,6 +7,7 @@ type SubmitRequest  struct {
 	ProblemID int `json:"problem_id"`
 	Code string `json:"code"`
 	//Input string `json:"input"`
+	Language string `json:"language"`
 }
 
 type SubmitResponse struct {

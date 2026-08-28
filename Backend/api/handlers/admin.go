@@ -58,7 +58,8 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 	var submission models.Submission
 	db.DB.Find(&submission, submissionID)
 	//submissionPath = filepath.Join(submissionPath,"/")
-	code, err:= os.ReadFile(submissionPath+"/code.cpp")
+	spec := judge.LanguageSpecs[submission.Language]
+	code, err:= os.ReadFile(submissionPath+spec.SourceFile)
 	compileLog , err := os.ReadFile(submissionPath+"/compile.log")
 	if err != nil{
 		http.Error(w, "internal 123124", http.StatusInternalServerError)

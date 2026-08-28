@@ -14,33 +14,61 @@ import (
 	"time"
 )
 
+type LanguageSpec struct {
+    SourceFile string
+    Image      string
+    CompileCmd string // empty = no compile step (Python)
+    RunCmd     string
+}
+
+var LanguageSpecs = map[string]LanguageSpec{
+    "cpp": {
+        SourceFile: "code.cpp",
+        Image:      "gcc:latest",
+        CompileCmd: "g++ code.cpp -O2 -std=c++17 -o program",
+        RunCmd:     "./program",
+    },
+    "python": {
+        SourceFile: "code.py",
+        Image:      "python:3.12-slim",
+        RunCmd:     "python3 code.py",
+    },
+    "java": {
+        SourceFile: "Main.java",
+        Image:      "eclipse-temurin:21-jdk",
+        CompileCmd: "javac Main.java",
+        RunCmd:     "java Main",
+    },
+}
+
 func processSubmission(sub models.Submission)(string,error){
+	spec := LanguageSpecs[sub.Language]
 	workspaceDir := WorkspacePathByID(sub.ID)
 	err := os.MkdirAll(workspaceDir, 0755)
 	if err != nil {
 		return string(models.InternalError), fmt.Errorf("failed to create workspace directory: %v", err)
 	}
 	defer os.RemoveAll(workspaceDir)
-	src := filepath.Join(SubmissionPathByID(sub.ID),"code.cpp")
-	dst := filepath.Join(workspaceDir,"code.cpp")
+	src := filepath.Join(SubmissionPathByID(sub.ID),spec.SourceFile)
+	dst := filepath.Join(workspaceDir,spec.SourceFile)
 	err = utils.CopyFile(src,dst)
 	if err != nil {
 		return string(models.InternalError), fmt.Errorf("failed to copy submission file: %v", err)
 	}
 	// compile and update db with result (if errors skip execution n display errors else continue)
-	err = compile(workspaceDir,sub.ID)
+	err = compile(workspaceDir,sub.ID,spec)
 	if err != nil {
 		log.Printf("Compilation error for submission %d is : %v",sub.ID,err)
 		return string(models.CompilationError), fmt.Errorf("compilation error : %w ", err)
 	}
-	result, err := runAllTestCases(sub, workspaceDir)
+	result, err := runAllTestCases(sub, workspaceDir,spec)
 	if err != nil {
 		return string(models.InternalError), fmt.Errorf("failed to run test cases: %v", err)
 	}
 	return result,err 
 }
 
-func runAllTestCases(sub models.Submission,workspaceDir string) (string,error){
+func runAllTestCases(sub models.Submission,workspaceDir string,spec LanguageSpec) (string,error){
 	testsDir := TestsDir(sub.ProblemID)
 	testFiles, err := utils.ListInputFiles(testsDir)
 	if err != nil{
@@ -51,7 +79,7 @@ func runAllTestCases(sub models.Submission,workspaceDir string) (string,error){
 		testNum := strings.TrimSuffix(testName,".in")
 		testInputPath := file
 		testOutputPath := filepath.Join(testsDir, testNum+".out")
-		result, err := runTestCase(sub.ID,testInputPath,testOutputPath,workspaceDir)
+		result, err := runTestCase(sub.ID,testInputPath,testOutputPath,workspaceDir,spec)
 		//if any test fails return WA immediately 
 		if err != nil {
 			return string(models.RuntimeError), fmt.Errorf("failed to run test case %s: %v", testNum, err)
@@ -66,7 +94,7 @@ func runAllTestCases(sub models.Submission,workspaceDir string) (string,error){
 }
 
 
-func compile(workspaceDir string, subID int)error{ //in docker
+func compile(workspaceDir string, subID int,spec LanguageSpec)error{ //in docker
 	submissionDir := SubmissionPathByID(subID)
 	// sourcePath := filepath.Join(submissionDir,"code.cpp")
 	// outputBinary := filepath.Join(submissionDir, "program")
@@ -85,9 +113,9 @@ func compile(workspaceDir string, subID int)error{ //in docker
 		"--cpus=1",
 		"-v", absWorkspaceDir+":/workspace",
 		"-w", "/workspace",
-		"gcc:latest",
+		spec.Image,
 		"bash", "-c",
-		"g++ code.cpp -O2 -std=c++17 -o program",
+		spec.CompileCmd,
 	)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -111,7 +139,7 @@ func compile(workspaceDir string, subID int)error{ //in docker
 
 
 
-func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath string, workspacePath string) (string, error){
+func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath string, workspacePath string,spec LanguageSpec) (string, error){
 	inputCopyToPath := filepath.Join(workspacePath,"input.txt")
 	inputBytes, err := os.ReadFile(testInputPath)
 	if err != nil {
@@ -122,7 +150,7 @@ func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath 
 		return string(models.InternalError), fmt.Errorf("failed to prepare test input: %w", err)
 	}
 
-	stdout,stderr,err := runDocker(submissionID, workspacePath, "./program < /workspace/input.txt",10*time.Second)
+	stdout,stderr,err := runDocker(submissionID, workspacePath, spec.RunCmd+"< /workspace/input.txt",10*time.Second,spec)
 	if err != nil {
     	if stderr == "TLE" {
 	    	return string(models.TimeLimitExceeded), nil

@@ -10,6 +10,7 @@ type Submission struct{
 	TeamID int `json:"team_id"`
 	ProblemID int `json:"problem_id"`
 	//Code string `json:"code"`
+	Language string `json:"language"`
 	Status string `json:"status"`
 	Verdict SubmissionVerdict `json:"verdict"`
 	SubmittedAt time.Time `json:"submitted_at"`

@@ -32,7 +32,8 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create submission directory", http.StatusInternalServerError)
 		return
 	}
-	submissionPath := submissionDir + "/code.cpp"
+	spec := judge.LanguageSpecs[req.Language]
+	submissionPath := submissionDir + "/" + spec.SourceFile
 	err = os.WriteFile(submissionPath, []byte(req.Code), 0644)
 	if err != nil {
 		http.Error(w, "Failed to save submission code", http.StatusInternalServerError)

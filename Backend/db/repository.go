@@ -14,6 +14,7 @@ func SaveSubmissionToDB(sub models.SubmitRequest) int{ // saves submission data 
 		//Code: sub.Code,
 		Status : "Queued",	
 		SubmittedAt: time.Now(),
+		Language: sub.Language,
 	}
 	DB.Create(&submission)
 	return submission.ID
