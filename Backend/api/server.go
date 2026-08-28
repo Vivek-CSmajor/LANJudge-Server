@@ -27,6 +27,7 @@ func Server() {
 
 	http.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitHandler))
 	http.HandleFunc("/submission/{id}",handlers.RequireAuth(handlers.GetSubmissionHandler))
+	http.HandleFunc("/run", handlers.RequireAuth(handlers.RunHandler))
 
 	//auth rotues
 	http.HandleFunc("/register", handlers.RegisterHandler)

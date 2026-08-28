@@ -45,3 +45,14 @@ type ChangeContestState struct {
 	Status ContestStatus `json:"status"`
 }
 
+type RunRequest struct {
+	Code string `json:"code"`
+	Language string `json:"language"`
+	Input string `json:"input"`
+}
+
+type RunResponse struct {
+	Output string `json:"output"`
+	Error string `json:"error"`
+}
+
