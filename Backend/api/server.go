@@ -27,6 +27,7 @@ func Server() {
 
 	http.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitHandler))
 	http.HandleFunc("/submission/{id}",handlers.RequireAuth(handlers.GetSubmissionHandler))
+	http.HandleFunc("/submissions/me", handlers.RequireAuth(handlers.ListMySubmissionsHandler))
 	http.HandleFunc("/run", handlers.RequireAuth(handlers.RunHandler))
 
 	//auth rotues
@@ -38,7 +39,7 @@ func Server() {
 	http.HandleFunc("/problems/{id}", handlers.RequireAuth(handlers.ProblemHandler))
 
 	//contest handlers
-	//http.HandleFunc("/contests", handlers.ContestsHandler) 
+	http.HandleFunc("/contest", handlers.RequireAuth(handlers.ContestHandler))
 
 	//scoreboard
 	http.HandleFunc("/scoreboard", handlers.ScoreboardHandler)

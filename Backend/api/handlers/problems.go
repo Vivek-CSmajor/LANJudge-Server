@@ -22,6 +22,14 @@ func ProblemsHandler(w http.ResponseWriter, r *http.Request){
 	utils.WriteJSON(w,200,problems)
 }
 
+func ContestHandler(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodGet{
+		http.Error(w,"Invalid method called", http.StatusMethodNotAllowed)
+		return
+	}
+	utils.WriteJSON(w,200,models.ActiveContest)
+}
+
 func ProblemHandler(w http.ResponseWriter, r *http.Request){
 	if r.Method != http.MethodGet{
 		http.Error(w,"Invalid method called", http.StatusMethodNotAllowed)

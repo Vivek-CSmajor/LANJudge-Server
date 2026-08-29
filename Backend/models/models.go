@@ -30,6 +30,7 @@ type Sessions struct{
 	//ID int `json:"id" gorm:"primaryKey"`
 	TeamID int `json:"team_id" gorm:"not null;index"`
 	DeviceID string `json:"device_id"`
+	//change this session token, its not supposed to be primaryKey , on refresh it will create new sessionToken
 	SessionToken string `json:"session_token" gorm:"primaryKey"`//new shyte: primary keys is. already unique , like obviously i didnt think of that cuz i m way too dumb 
 	Active bool `json:"active"`
 	CreatedAt time.Time `json:"created_at"`

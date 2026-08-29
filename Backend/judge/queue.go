@@ -12,7 +12,7 @@ var SubmissionQueue chan int
 func InitializeQueue(){
 	SubmissionQueue = make(chan int, 100) // reinitialize the channel
 }
-	
+
 func StartWorkers(numOfWorkers int){
 for i:=0; i<numOfWorkers; i++{
 		go workerLoop(i)
