@@ -25,7 +25,11 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	team := TeamFromContext(r)
 	req.TeamID = team.ID
-	submissionID := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
+	submissionID, err := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
+	if err != nil {
+		http.Error(w, "db save errro", http.StatusInternalServerError)
+		return
+	}
 	//store code in fs
 	submissionDir := judge.SubmissionPathByID(submissionID)
 	err = os.MkdirAll(submissionDir, 0755)

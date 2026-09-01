@@ -2,6 +2,7 @@ package judge
 
 import (
 	//"fmt"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -57,12 +58,28 @@ func TestsDir(id int) string { //asdasdasd
 	return path
 }
 
+var ActiveManifest *Manifest
+
+func LoadManifest()(*Manifest, error){
+	mnf, err := os.ReadFile(filepath.Join(contestPath,"manifest.json"))
+	if err != nil {
+		return nil,err
+	}
+	var m Manifest
+	if err := json.Unmarshal(mnf,&m);err != nil{
+		return nil,err
+	}
+	return &m , nil
+}
+
 // These exist to make parsing JSON recieved from the cloud backend to be deserialized
 type Manifest struct {
-	//ContestID string `json:"contest_id"`
+	ContestID string `json:"contest_id"`
 	Name            string    `json:"name"`
 	DurationMinutes int       `json:"duration_minutes"`
 	Problems        []Problem `json:"problems"`
+	AdminUsername	string 	`json:"admin_user_name"`
+	AdminLoginCode string `json:"admin_login_code"`
 }
 
 type Problem struct {

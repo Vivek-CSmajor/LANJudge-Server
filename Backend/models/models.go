@@ -35,6 +35,8 @@ type Sessions struct{
 	Active bool `json:"active"`
 	CreatedAt time.Time `json:"created_at"`
 	ExpiresAt time.Time `json:"expires_at"`
+	Admin bool `json:"admin" gorm:"default:false"`
+
 }
 
 //why tf am i still doing this project

@@ -63,9 +63,9 @@ func processSubmission(sub models.Submission)(string,error){
 	}
 	result, err := runAllTestCases(sub, workspaceDir,spec)
 	if err != nil {
-		return string(models.InternalError), fmt.Errorf("failed to run test cases: %v", err)
+		return result, fmt.Errorf("failed to run test cases: %v", err)
 	}
-	return result,err 
+	return result,err
 }
 
 func runAllTestCases(sub models.Submission,workspaceDir string,spec LanguageSpec) (string,error){
@@ -74,15 +74,18 @@ func runAllTestCases(sub models.Submission,workspaceDir string,spec LanguageSpec
 	if err != nil{
 		return string(models.InternalError),err
 	}
+	if len(testFiles) == 0 {
+		return string(models.InternalError), fmt.Errorf("no test cases found for problem %d in %s", sub.ProblemID, testsDir)
+	}
 	for _, file := range testFiles{
 		testName := filepath.Base(file)
 		testNum := strings.TrimSuffix(testName,".in")
 		testInputPath := file
 		testOutputPath := filepath.Join(testsDir, testNum+".out")
 		result, err := runTestCase(sub.ID,testInputPath,testOutputPath,workspaceDir,spec)
-		//if any test fails return WA immediately 
+		//if any test fails return WA immediately
 		if err != nil {
-			return string(models.RuntimeError), fmt.Errorf("failed to run test case %s: %v", testNum, err)
+			return result, fmt.Errorf("failed to run test case %s: %v", testNum, err)
 		}
 		if result == string(models.WrongAnswer) {
 			//store failure.json in submission workspace with details of the failed test case for frontend to display

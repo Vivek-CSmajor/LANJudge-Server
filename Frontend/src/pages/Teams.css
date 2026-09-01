@@ -115,7 +115,8 @@
   background: var(--danger-bg);
 }
 
-.toggle-btn {
+.toggle-btn,
+.status-select {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -125,12 +126,14 @@
   cursor: pointer;
 }
 
-.toggle-btn:hover:not(:disabled) {
+.toggle-btn:hover:not(:disabled),
+.status-select:hover:not(:disabled) {
   border-color: var(--accent-border);
   color: var(--accent);
 }
 
-.toggle-btn:disabled {
+.toggle-btn:disabled,
+.status-select:disabled {
   cursor: default;
   opacity: 0.6;
 }

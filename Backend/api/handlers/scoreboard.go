@@ -4,12 +4,11 @@ import (
 	"campuscode/api/ws"
 	"campuscode/db"
 	"campuscode/models"
+	"campuscode/utils"
 	"encoding/json"
 
-	//"campuscode/utils"
 	"log"
 
-	//"campuscode/utils"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -24,8 +23,21 @@ var upgrader = websocket.Upgrader{
 func ScoreboardHandler(w http.ResponseWriter, r *http.Request){		
 	if r.Method != http.MethodGet {
 		http.Error(w,"invalid method is called for scoreboard", http.StatusMethodNotAllowed)
-		return 
+		return
 	}
+
+	//a fall back to allow plain http fetches instead of a ws always
+	if !websocket.IsWebSocketUpgrade(r) {
+		var scoreboard []models.ScoreBoard
+		err := db.DB.Order("total_solved DESC").Order("total_penalty ASC").Order("last_ac_time ASC").Find(&scoreboard).Error
+		if err != nil {
+			http.Error(w, "Db error when sorting", http.StatusInternalServerError)
+			return
+		}
+		utils.WriteJSON(w, 200, scoreboard)
+		return
+	}
+
 	conn , err := upgrader.Upgrade(w, r , nil)
 	if err != nil {
 		log.Println("error in websocket ",err)

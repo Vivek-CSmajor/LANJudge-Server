@@ -29,23 +29,25 @@ export default function Submissions() {
   const [selectedId, setSelectedId] = useState(null)
 
   const load = useCallback(() => {
-    return fetchSubmissions()
-      .then((data) => {
-        setSubmissions(Array.isArray(data) ? data : [])
-        setError(null)
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    fetchTeams()
+    // Team names are refetched alongside submissions every time (not just
+    // once on mount) so a team registered after this page was opened still
+    // shows its real name instead of "Team {id}" until the next full remount.
+    const teamsPromise = fetchTeams()
       .then((teams) => {
         const map = {}
         for (const t of teams ?? []) map[t.id] = t.name
         setTeamsById(map)
       })
       .catch(() => {}) // team names are best-effort; falls back to "Team {id}"
+
+    const submissionsPromise = fetchSubmissions()
+      .then((data) => {
+        setSubmissions(Array.isArray(data) ? data : [])
+        setError(null)
+      })
+      .catch((e) => setError(e.message))
+
+    return Promise.all([teamsPromise, submissionsPromise]).finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {

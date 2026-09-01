@@ -7,7 +7,7 @@ import (
 	//"gorm.io/gorm"
 )
 
-func SaveSubmissionToDB(sub models.SubmitRequest) int{ // saves submission data to db and return the subID
+func SaveSubmissionToDB(sub models.SubmitRequest) (int,error){ // saves submission data to db and return the subID
 	submission := models.Submission{
 		TeamID: sub.TeamID,
 		ProblemID: sub.ProblemID,
@@ -16,8 +16,10 @@ func SaveSubmissionToDB(sub models.SubmitRequest) int{ // saves submission data 
 		SubmittedAt: time.Now(),
 		Language: sub.Language,
 	}
-	DB.Create(&submission)
-	return submission.ID
+	if err := DB.Create(&submission).Error;err != nil{
+		return 0,err 
+	}
+	return submission.ID,nil
 }
 
 func GetSubmissionByID(subID int) (models.Submission, error){

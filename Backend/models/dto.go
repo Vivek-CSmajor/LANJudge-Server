@@ -31,6 +31,11 @@ type LoginRequest struct {
 	BoundDeviceID string `json:"bound_device_id"`
 }
 
+type AdminLoginRequest struct {
+	Username string `json:"user_name"`
+	LoginCode string `json:"login_code"`
+}
+
 type LoginResponse struct {
 	SessionToken string `json:"session_token"`	
 }
@@ -40,8 +45,8 @@ type UpdateTeamStatusRequest struct {
 }
 
 type ChangeContestState struct {
-	StartTime time.Time `json:"start_time"`
-	EndTime time.Time	`json:"end_time"`
+	StartTime *time.Time `json:"start_time"`
+	EndTime *time.Time	`json:"end_time"`
 	Status ContestStatus `json:"status"`
 }
 

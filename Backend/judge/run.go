@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-
-
 // RunAdHoc compiles (if needed) and runs code once against the given input,
 // entirely outside the graded-submission pipeline: no DB writes, no queue,
 // no verdict — just compile/run and hand back whatever happened.

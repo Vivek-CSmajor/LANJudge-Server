@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +38,38 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w ,200,res)
 } 
 
+func AdminLoginHandler(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodPost {
+		http.Error(w, "Wrong method called in login Handler", http.StatusMethodNotAllowed)
+		return
+	}
+	var req models.AdminLoginRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Bad request body bitch", http.StatusBadRequest)
+		return 
+	}
+	if judge.ActiveManifest == nil ||
+		req.Username != judge.ActiveManifest.AdminUsername ||
+		req.LoginCode != judge.ActiveManifest.AdminLoginCode {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+	token := utils.TokenGenerator(16)
+	session := models.Sessions {
+		SessionToken : token,
+		Active : true,
+		Admin : true,
+		CreatedAt : time.Now(),
+		ExpiresAt : time.Now().Add(6*time.Hour),
+	}
+	if err := db.DB.Create(&session).Error;err != nil{
+		http.Error(w,"Internal error DB",http.StatusInternalServerError)
+		return
+	}
+	utils.WriteJSON(w,200,map[string]string{"session_token":token})
+}
+
 func AdminGetSubmissionsHandler(w http.ResponseWriter, r *http.Request){
 	if r.Method != http.MethodGet{
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
@@ -60,7 +93,14 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 	//submissionPath = filepath.Join(submissionPath,"/")
 	spec := judge.LanguageSpecs[submission.Language]
 	code, err:= os.ReadFile(submissionPath+spec.SourceFile)
-	compileLog , err := os.ReadFile(submissionPath+"/compile.log")
+	if err != nil {
+		http.Error(w, "Failed to read submission source", http.StatusInternalServerError)
+		return
+	}
+	compileLog := ""
+	if b , err := os.ReadFile(submissionPath+"/compile.log");err == nil {//only populate compileLog if readfile is scuessful meaning there was something in it 
+		compileLog = string(b)
+	}
 	if err != nil{
 		http.Error(w, "internal 123124", http.StatusInternalServerError)
 		return
@@ -69,7 +109,7 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 		"code" : string(code),
 		"verdict" : submission.Verdict,
 		"status" : submission.Status,
-		"compile_log" : string(compileLog),
+		"compile_log" : compileLog,
 		"team_id" : submission.TeamID,
 		"problem_id" : submission.ProblemID,
 	}
@@ -142,8 +182,12 @@ func AdminChangeContestState(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "internal error ", http.StatusInternalServerError)
 		return
 	}	
-	models.ActiveContest.StartTime = req.StartTime
-	models.ActiveContest.EndTime = req.EndTime
+	if req.StartTime != nil {
+		models.ActiveContest.StartTime = *req.StartTime
+	}
+	if req.EndTime != nil {
+		models.ActiveContest.EndTime = *req.EndTime
+	}
 	models.ActiveContest.Status = req.Status
 	db.DB.Save(models.ActiveContest)//believe me somehow its saving to the contests table
 	//cuz the active contest is a pointer in memory so saving it db takes the pointer, goes to matching row with that id 
@@ -194,4 +238,12 @@ func AdminApproveOverride(w http.ResponseWriter, r *http.Request){
 	}
 	db.DB.Save(&overrideRecord)
 	utils.WriteJSON(w,200,overrideRecord)
+}
+
+func AdminGetContestStateHandler(w http.ResponseWriter, r *http.Request){
+	if r.Method != http.MethodGet{
+		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
+		return
+	}
+	utils.WriteJSON(w,200,models.ActiveContest)
 }

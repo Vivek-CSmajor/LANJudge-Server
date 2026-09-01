@@ -35,7 +35,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request){
 	//apparently. guys we need such stuff to be sent from frontend so guess its future me problem
 	deviceID := r.Header.Get("X-Device-ID")//gpt made this bs i was using uui.new stuff from google
 	if deviceID == ""{
-		http.Error(w, "mising device id ",400)
+		http.Error(w, "missing device id ",400)
+		return 
 	}
 	login := func(){
 		db.DB.Model(&models.Sessions{}).

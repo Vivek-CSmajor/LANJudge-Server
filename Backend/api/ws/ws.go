@@ -17,11 +17,24 @@ var Mu sync.RWMutex
 //above:its better to use RWMutex -->allows more than 1 reads but blocks more than 1 writes at same time. 
 // normal sync.Mutex blocks concurrent reads too and since we gonna just read its better to have RWMutex
 // ok i i m also writing thge connection so its better to use sync.Mutex but no harm in using RWMutex
+//ok so now i removed the defer for the locks and moved to manual lock
 func broadCast(pl any){
 	Mu.RLock()
-	defer Mu.RUnlock()
+	var dead []*websocket.Conn
 	for conn := range Clients {
-		conn.WriteJSON(pl)
+		conn.SetWriteDeadline(time.Now().Add(5*time.Second))
+		if err := conn.WriteJSON(pl); err != nil {
+			dead = append(dead, conn)
+		}
+	}
+	Mu.RUnlock()
+	if len(dead) > 0 {
+		Mu.Lock()
+		for _, conn := range dead {
+			conn.Close()
+			delete(Clients, conn)
+		}
+		Mu.Unlock()
 	}
 }
 

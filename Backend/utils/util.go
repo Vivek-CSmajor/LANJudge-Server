@@ -45,7 +45,7 @@ func CopyFile(src string, dst string) error{
 		return err
 	}
 	defer output.Close()
-	_, _ = io.Copy(output,input)
+	_, err = io.Copy(output,input)
 	return err
 }
 

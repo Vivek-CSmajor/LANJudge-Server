@@ -46,8 +46,8 @@ export default function Teams() {
       .finally(() => setSubmitting(false))
   }
 
-  function handleToggle(team) {
-    const next = team.status === 'disabled' ? 'enabled' : 'disabled'
+  function handleStatusChange(team, next) {
+    if (next === (team.status ?? 'enabled')) return
     setTogglingId(team.id)
     setTeamStatus(team.id, next)
       .then(() => load())
@@ -120,13 +120,16 @@ export default function Teams() {
                   </span>
                 </td>
                 <td>
-                  <button
-                    className="toggle-btn"
+                  <select
+                    className="status-select"
+                    value={t.status ?? 'enabled'}
                     disabled={togglingId === t.id}
-                    onClick={() => handleToggle(t)}
+                    onChange={(e) => handleStatusChange(t, e.target.value)}
                   >
-                    {togglingId === t.id ? '…' : t.status === 'disabled' ? 'Enable' : 'Disable'}
-                  </button>
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                    <option value="disqualified">Disqualified</option>
+                  </select>
                 </td>
               </tr>
             ))}

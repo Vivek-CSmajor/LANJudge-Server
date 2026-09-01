@@ -149,6 +149,12 @@ code {
   border: 1px solid #4ade80;
 }
 
+.banner--warning {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid #facc15;
+}
+
 .empty-state {
   padding: 48px 0;
   text-align: center;

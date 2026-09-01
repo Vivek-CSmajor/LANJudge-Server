@@ -45,17 +45,17 @@ func Server() {
 	http.HandleFunc("/scoreboard", handlers.ScoreboardHandler)
 
 	//admin
-	http.HandleFunc("/admin/submissions",handlers.AdminGetSubmissionsHandler)
-	http.HandleFunc("/admin/submissions/{id}", handlers.AdminGetSubmissionHandler)
-	http.HandleFunc("/admin/submissions/{id}/rejudge", handlers.AdminRejudgeSubmissionHandler)
-	http.HandleFunc("/admin/teams/{id}", handlers.AdminChangeTeamStatusHandler)
-	http.HandleFunc("/admin/teams",handlers.AdminGetTeamsHandler)
-	http.HandleFunc("/admin/scoreboard",handlers.AdminGetScoreboard)
-	http.HandleFunc("/admin/overrides",handlers.AdminGetOverridesHandler)
-	http.HandleFunc("/admin/overrides/{id}",handlers.AdminApproveOverride)
-
-
-	http.HandleFunc("/admin/contest",handlers.AdminChangeContestState)
+	http.HandleFunc("/admin/login", handlers.AdminLoginHandler)
+	http.HandleFunc("/admin/submissions",handlers.RequireAdminAuth(handlers.AdminGetSubmissionsHandler))
+	http.HandleFunc("/admin/submissions/{id}", handlers.RequireAdminAuth(handlers.AdminGetSubmissionHandler))
+	http.HandleFunc("/admin/submissions/{id}/rejudge", handlers.RequireAdminAuth(handlers.AdminRejudgeSubmissionHandler))
+	http.HandleFunc("/admin/teams/{id}", handlers.RequireAdminAuth(handlers.AdminChangeTeamStatusHandler))
+	http.HandleFunc("/admin/teams",handlers.RequireAdminAuth(handlers.AdminGetTeamsHandler))
+	http.HandleFunc("/admin/scoreboard",handlers.RequireAdminAuth(handlers.AdminGetScoreboard))
+	http.HandleFunc("/admin/overrides",handlers.RequireAdminAuth(handlers.AdminGetOverridesHandler))
+	http.HandleFunc("/admin/overrides/{id}",handlers.RequireAdminAuth(handlers.AdminApproveOverride))
+	http.HandleFunc("GET /admin/contest", handlers.RequireAdminAuth(handlers.AdminGetContestStateHandler))//u can write method scoped routes as well so they can have same
+	http.HandleFunc("PATCH /admin/contest", handlers.RequireAdminAuth(handlers.AdminChangeContestState)) // path url with diff handlers/funcs
 
 	ws.StartTimeSyncTicker()
 
