@@ -83,11 +83,6 @@ func GetSubmissionHandler(w http.ResponseWriter,r *http.Request){
 		http.Error(w,"Forbidden",http.StatusForbidden)
 		return
 	}
-
-	// Code was never stored in the DB (see the commented-out field on
-	// models.Submission) — it's read back from the same file SubmitHandler
-	// wrote it to. Missing/cleaned-up files just come back as "" rather than
-	// failing the whole request.
 	code := ""
 	if spec, ok := judge.LanguageSpecs[submission.Language]; ok {
 		codePath := filepath.Join(judge.SubmissionPathByID(submission.ID), spec.SourceFile)

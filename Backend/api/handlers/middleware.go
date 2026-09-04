@@ -38,6 +38,10 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc{
 		var team models.Teams
 		//add team into the context so handlers can use it
 		db.DB.First(&team,session.TeamID)
+		if team.Status != nil && (*team.Status == "disabled" || *team.Status == "disqualified") {
+			http.Error(w,"team account is "+*team.Status,http.StatusForbidden)
+			return
+		}
 		ctx := context.WithValue(r.Context(),teamContextKey,team)
 		//if good call next
 		next(w,r.WithContext(ctx))

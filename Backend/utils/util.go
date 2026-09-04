@@ -74,14 +74,13 @@ func NormalizeOutput(s string) string{
 	s = strings.ReplaceAll(s,"\r\n","\n")//convert windwos line endings to unix
 	lines := strings.Split(s,"\n")
 	for i:= range lines{
-		lines[i] = strings.TrimRight(lines[i],"\t") // remove trailing tabs
 		lines[i] = strings.TrimSpace(lines[i])
 	}
 	return strings.TrimSpace(strings.Join(lines,"\n"))
 }
 
-func ReadProblemStatement(problemPath string)(string){
+func ReadProblemStatement(problemPath string)(string, error){
 	path := filepath.Join(problemPath,"statement.md")
-	data, _ := os.ReadFile(path)
-	return string(data)
+	data, err := os.ReadFile(path)
+	return string(data), err
 }

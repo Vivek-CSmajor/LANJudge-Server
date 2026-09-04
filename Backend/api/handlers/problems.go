@@ -4,10 +4,10 @@ import (
 	"campuscode/db"
 	"campuscode/models"
 	"campuscode/utils"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
-	"strings"
 )
 
 func ProblemsHandler(w http.ResponseWriter, r *http.Request){
@@ -35,17 +35,20 @@ func ProblemHandler(w http.ResponseWriter, r *http.Request){
 		http.Error(w,"Invalid method called", http.StatusMethodNotAllowed)
 		return
 	}
-	id := strings.TrimPrefix(r.URL.Path,"/problems/")
+	id := r.PathValue("id")
 	strconv.Atoi(id)
 
-	if id == "" || id == r.URL.Path{
-		http.Error(w,"id is empty in url", http.StatusBadGateway)
-		return 
+	if id == "" {
+		http.Error(w,"id is empty in url", http.StatusBadRequest)
+		return
 	}
 	problemPath := filepath.Join("server_data","contest","problems",id)
-	description := utils.ReadProblemStatement(problemPath)
+	description, err := utils.ReadProblemStatement(problemPath)
+	if err != nil {
+		log.Printf("failed to read statement.md for problem %s: %v", id, err)
+	}
 	var problem models.Problem
-	err := db.DB.First(&problem,id).Error
+	err = db.DB.First(&problem,id).Error
 	if err != nil{
 		http.Error(w,"internal server error 10200", http.StatusInternalServerError)
 		return 

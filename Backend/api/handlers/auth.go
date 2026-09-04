@@ -32,6 +32,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Invalid credentials ", http.StatusUnauthorized)
 		return
 	}
+	if team.Status != nil && *team.Status == "disqualified" {
+		http.Error(w, "team is disqualified", http.StatusForbidden)
+		return
+	}
 	//apparently. guys we need such stuff to be sent from frontend so guess its future me problem
 	deviceID := r.Header.Get("X-Device-ID")//gpt made this bs i was using uui.new stuff from google
 	if deviceID == ""{
@@ -52,7 +56,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request){
 			CreatedAt: time.Now(),
 			ExpiresAt: time.Now().Add(6*time.Hour),/// currTime + 6hrs			
 		}
-		db.DB.Create(&session)
+		if err := db.DB.Create(&session).Error; err != nil {
+			http.Error(w, "Failed to create session", http.StatusInternalServerError)
+			return
+		}
 		utils.WriteJSON(w, 200, map[string]string{
 			"session_token" : sessionToken,
 		})

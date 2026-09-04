@@ -25,3 +25,11 @@
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
+
+.app-nav-btn--logout {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-nav-btn--logout:hover { color: var(--danger); }

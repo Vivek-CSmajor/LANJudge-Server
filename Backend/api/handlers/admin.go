@@ -86,10 +86,17 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	submissionID := r.PathValue("id")
-	subID,_ := strconv.Atoi(submissionID)
+	subID,err := strconv.Atoi(submissionID)
+	if err != nil {
+		http.Error(w, "Invalid submission id", http.StatusBadRequest)
+		return
+	}
 	submissionPath := judge.SubmissionPathByID(subID)
 	var submission models.Submission
-	db.DB.Find(&submission, submissionID)
+	if err := db.DB.First(&submission, subID).Error; err != nil {
+		http.Error(w, "Submission not found", http.StatusNotFound)
+		return
+	}
 	//submissionPath = filepath.Join(submissionPath,"/")
 	spec := judge.LanguageSpecs[submission.Language]
 	code, err:= os.ReadFile(submissionPath+spec.SourceFile)
@@ -162,6 +169,10 @@ func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "internal error ", http.StatusInternalServerError)
 		return
 	}
+	if req.Status != "enabled" && req.Status != "disabled" && req.Status != "disqualified" {
+		http.Error(w, "invalid status", http.StatusBadRequest)
+		return
+	}
 	teamID := r.PathValue("id")
 	db.DB.Model(&models.Teams{}).Where("id = ?",teamID).Update("status",req.Status)
 	utils.WriteJSON(w,200,"Team Status Updated")
@@ -182,6 +193,12 @@ func AdminChangeContestState(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "internal error ", http.StatusInternalServerError)
 		return
 	}	
+	switch req.Status {
+	case models.ContestPending, models.ContestActive, models.ContestPaused, models.ContestEnded:
+	default:
+		http.Error(w, "invalid contest status", http.StatusBadRequest)
+		return
+	}
 	if req.StartTime != nil {
 		models.ActiveContest.StartTime = *req.StartTime
 	}
@@ -228,7 +245,14 @@ func AdminApproveOverride(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	var overrideRecord models.DeviceOverride
-	db.DB.First(&overrideRecord,"id = ?",id)
+	if err := db.DB.First(&overrideRecord,"id = ?",id).Error; err != nil {
+		http.Error(w, "Override not found", http.StatusNotFound)
+		return
+	}
+	if overrideRecord.Status != "pending" {
+		http.Error(w, "Override already resolved", http.StatusConflict)
+		return
+	}
 	if req.Action == "approve"{
 		overrideRecord.Status = "approved"
 		db.DB.Model(&models.Teams{}).Where("id = ?",overrideRecord.TeamID).Update("bound_device_id",overrideRecord.NewDeviceID)

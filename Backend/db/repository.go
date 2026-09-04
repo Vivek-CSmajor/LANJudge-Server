@@ -92,6 +92,20 @@ func UpdateTeamProblemStatsAndScoreboard(sub models.Submission,startTime time.Ti
 }
 
 
+func GetScoreboard() ([]models.ScoreBoard, error) {
+	var scoreboard []models.ScoreBoard
+	err := DB.Joins("JOIN teams ON teams.id = score_boards.team_id").
+		Where("teams.status IS NULL OR teams.status <> ?", "disqualified").
+		Order("total_solved DESC").
+		Order("total_penalty ASC").
+		Order("last_ac_time ASC").
+		Find(&scoreboard).Error
+	for i := range scoreboard {
+		scoreboard[i].Rank = i + 1
+	}
+	return scoreboard, err
+}
+
 func GetAllProblems()([]models.Problem, error){
 	var problems []models.Problem
 	err := DB.Order("id ASC").Find(&problems).Error
@@ -114,18 +128,4 @@ func LoadOrInitContest() *models.Contest {
 		DB.Create(&contest)
 	}
 	return &contest
-}
-
-func GetTeamFromSubmission(token string)(models.Teams,error){
-	var team models.Teams
-	var session models.Sessions
-	err := DB.Where("session_token = ?",token).Find(&session).Error
-	if err != nil{
-		return models.Teams{}, err
-	}
-	err = DB.First(&team,session.TeamID).Error
-	if err != nil {
-		return models.Teams{},err
-	}
-	return team,err
 }

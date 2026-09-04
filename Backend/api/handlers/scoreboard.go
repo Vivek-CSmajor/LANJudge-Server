@@ -3,7 +3,6 @@ package handlers
 import (
 	"campuscode/api/ws"
 	"campuscode/db"
-	"campuscode/models"
 	"campuscode/utils"
 	"encoding/json"
 
@@ -28,8 +27,7 @@ func ScoreboardHandler(w http.ResponseWriter, r *http.Request){
 
 	//a fall back to allow plain http fetches instead of a ws always
 	if !websocket.IsWebSocketUpgrade(r) {
-		var scoreboard []models.ScoreBoard
-		err := db.DB.Order("total_solved DESC").Order("total_penalty ASC").Order("last_ac_time ASC").Find(&scoreboard).Error
+		scoreboard, err := db.GetScoreboard()
 		if err != nil {
 			http.Error(w, "Db error when sorting", http.StatusInternalServerError)
 			return
@@ -47,8 +45,7 @@ func ScoreboardHandler(w http.ResponseWriter, r *http.Request){
 	ws.Clients[conn] = true //ow my backend will remember this connection and if it exists
 	ws.Mu.Unlock()
 	defer conn.Close()
-	var scoreboard []models.ScoreBoard
-	err  = db.DB.Order("total_solved DESC").Order("total_penalty ASC").Order("last_ac_time ASC").Find(&scoreboard).Error
+	scoreboard, err := db.GetScoreboard()
 	if err != nil {
 		http.Error(w,"Db error when sorting", http.StatusInternalServerError)
 		return 

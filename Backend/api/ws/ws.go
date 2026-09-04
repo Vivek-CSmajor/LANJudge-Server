@@ -39,8 +39,7 @@ func broadCast(pl any){
 }
 
 func BroadcastScoreboard() {
-	var scoreboard []models.ScoreBoard
-	db.DB.Order("total_solved DESC").Order("total_penalty ASC").Order("last_ac_time ASC").Find(&scoreboard)//seems reduntant or the handler one is reduntant, will hv to check it out
+	scoreboard, _ := db.GetScoreboard()
 	broadCast(scoreboardMsg{Type: "scoreboard",Rows: scoreboard})
 }
 

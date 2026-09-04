@@ -1,11 +1,14 @@
 package judge
 
 import (
-	//"fmt"
+	"campuscode/db"
+	"campuscode/models"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 const basePath = "server_data"
@@ -85,6 +88,47 @@ type Manifest struct {
 type Problem struct {
 	ID   string `json:"id"`
 	Path string `json:"path"`
+	Title string `json:"title"`
+}
+
+// LoadOrInitProblems syncs the problems table from the contest package on disk —
+// manifest.json for the id/title list, each problem's meta.json for limits —
+// same "create if missing, leave existing rows alone" pattern as LoadOrInitContest.
+// Without this, a fresh/reset DB has an empty problems table and nothing on disk
+// ever gets loaded into it, since AutoMigrate only creates the schema.
+func LoadOrInitProblems(manifest *Manifest) error {
+	for _, p := range manifest.Problems {
+		id, err := strconv.Atoi(p.ID)
+		if err != nil {
+			return fmt.Errorf("invalid problem id %q in manifest: %w", p.ID, err)
+		}
+
+		var existing models.Problem
+		if err := db.DB.First(&existing, id).Error; err == nil {
+			continue // already in DB, don't overwrite a possibly-live row
+		}
+
+		metaPath := filepath.Join(contestPath, "problems", p.ID, "meta.json")
+		metaBytes, err := os.ReadFile(metaPath)
+		if err != nil {
+			return fmt.Errorf("failed to read meta.json for problem %s: %w", p.ID, err)
+		}
+		var meta ProblemMeta
+		if err := json.Unmarshal(metaBytes, &meta); err != nil {
+			return fmt.Errorf("failed to parse meta.json for problem %s: %w", p.ID, err)
+		}
+
+		problem := models.Problem{
+			ID:          id,
+			Title:       p.Title,
+			TimeLimit:   time.Duration(meta.TimeLimitMS) * time.Millisecond,
+			MemoryLimit: meta.MemoryLimitMB,
+		}
+		if err := db.DB.Create(&problem).Error; err != nil {
+			return fmt.Errorf("failed to insert problem %d: %w", id, err)
+		}
+	}
+	return nil
 }
 
 type ProblemMeta struct {
@@ -96,8 +140,4 @@ type FileSystem struct {
 	BasePath    string
 	ContestPath string
 	Runtime     string
-}
-
-func (f FileSystem) WorkspacePathByID(d int) any {
-	panic("unimplemented")
 }
