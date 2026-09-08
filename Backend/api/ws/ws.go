@@ -12,17 +12,19 @@ import (
 
 var Clients = map[*websocket.Conn]bool{}
 var Mu sync.RWMutex
-//a map to store the connections (websockets) 
 
-//above:its better to use RWMutex -->allows more than 1 reads but blocks more than 1 writes at same time. 
+//a map to store the connections (websockets)
+
 // normal sync.Mutex blocks concurrent reads too and since we gonna just read its better to have RWMutex
 // ok i i m also writing thge connection so its better to use sync.Mutex but no harm in using RWMutex
-//ok so now i removed the defer for the locks and moved to manual lock
-func broadCast(pl any){
+// ok so now i removed the defer for the locks and moved to manual lock
+//
+//above:its better to use RWMutex -->allows more than 1 reads but blocks more than 1 writes at same time.
+func broadCast(pl any) {
 	Mu.RLock()
 	var dead []*websocket.Conn
 	for conn := range Clients {
-		conn.SetWriteDeadline(time.Now().Add(5*time.Second))
+		conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		if err := conn.WriteJSON(pl); err != nil {
 			dead = append(dead, conn)
 		}
@@ -40,18 +42,18 @@ func broadCast(pl any){
 
 func BroadcastScoreboard() {
 	scoreboard, _ := db.GetScoreboard()
-	broadCast(scoreboardMsg{Type: "scoreboard",Rows: scoreboard})
+	broadCast(scoreboardMsg{Type: "scoreboard", Rows: scoreboard})
 }
 
-func BroadcastTime(){
+func BroadcastTime() {
 	if models.ActiveContest == nil {
 		return
 	}
 	broadCast(contestMsg{
-		Type: "time_sync",
-		Status: models.ActiveContest.Status,
+		Type:        "time_sync",
+		Status:      models.ActiveContest.Status,
 		CurrentTime: time.Now(),
-		EndTime: models.ActiveContest.EndTime,
+		EndTime:     models.ActiveContest.EndTime,
 	})
 }
 
@@ -66,15 +68,12 @@ func StartTimeSyncTicker() {
 }
 
 type contestMsg struct {
-	Type string `json:"type"`
-	Status models.ContestStatus `json:"status"`
-	CurrentTime time.Time `json:"current_time"`
-	EndTime time.Time `json:"end_time"`
+	Type        string               `json:"type"`
+	Status      models.ContestStatus `json:"status"`
+	CurrentTime time.Time            `json:"current_time"`
+	EndTime     time.Time            `json:"end_time"`
 }
 type scoreboardMsg struct {
-	Type string `json:"type"`
+	Type string              `json:"type"`
 	Rows []models.ScoreBoard `json:"rows"`
 }
-
-
-

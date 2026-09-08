@@ -35,17 +35,6 @@ func InitializeRunTime() error {
 	return nil
 }
 
-// since the fucntions are logically of filesystem type its bettter to write them as methods instead of functions
-// ok apparently i didnt do the above thing, its complicated,basically we should 
-/*
-Make them real methods — swap runtimePath for fs.Runtime inside each one.
-Payoff: you can build a FileSystem{Runtime: "/tmp/test_data/runtime"} in a test and get
-isolated paths, no shared-state test pollution, no touching real server_data. 
-This is probably the actual point of having the struct.
-Make them plain functions — func WorkspacePathByID(id int) string, no receiver, 
-no fs := needed anywhere. Simpler if you're confident you'll never need more than one 
-filesystem "configuration" (e.g. this is a single-tenant judge server, always server_data).
-*/
 func WorkspacePathByID(id int) string {
 	path := filepath.Join(runtimePath, "workspaces", strconv.Itoa(id))
 	return path
@@ -57,37 +46,37 @@ func SubmissionPathByID(id int) string {
 }
 
 func TestsDir(id int) string { //asdasdasd
-	path := filepath.Join(contestPath, "problems", strconv.Itoa(id),"tests")
+	path := filepath.Join(contestPath, "problems", strconv.Itoa(id), "tests")
 	return path
 }
 
 var ActiveManifest *Manifest
 
-func LoadManifest()(*Manifest, error){
-	mnf, err := os.ReadFile(filepath.Join(contestPath,"manifest.json"))
+func LoadManifest() (*Manifest, error) {
+	mnf, err := os.ReadFile(filepath.Join(contestPath, "manifest.json"))
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	var m Manifest
-	if err := json.Unmarshal(mnf,&m);err != nil{
-		return nil,err
+	if err := json.Unmarshal(mnf, &m); err != nil {
+		return nil, err
 	}
-	return &m , nil
+	return &m, nil
 }
 
 // These exist to make parsing JSON recieved from the cloud backend to be deserialized
 type Manifest struct {
-	ContestID string `json:"contest_id"`
+	ContestID       string    `json:"contest_id"`
 	Name            string    `json:"name"`
 	DurationMinutes int       `json:"duration_minutes"`
 	Problems        []Problem `json:"problems"`
-	AdminUsername	string 	`json:"admin_user_name"`
-	AdminLoginCode string `json:"admin_login_code"`
+	AdminUsername   string    `json:"admin_user_name"`
+	AdminLoginCode  string    `json:"admin_login_code"`
 }
 
 type Problem struct {
-	ID   string `json:"id"`
-	Path string `json:"path"`
+	ID    string `json:"id"`
+	Path  string `json:"path"`
 	Title string `json:"title"`
 }
 
@@ -102,12 +91,13 @@ func LoadOrInitProblems(manifest *Manifest) error {
 		if err != nil {
 			return fmt.Errorf("invalid problem id %q in manifest: %w", p.ID, err)
 		}
-
-		var existing models.Problem
-		if err := db.DB.First(&existing, id).Error; err == nil {
+		exists, err := db.ExistsByID[models.Problem](id)
+		if err != nil {
+			return fmt.Errorf("failed to check problem %d: %w", id, err)
+		}
+		if exists {
 			continue // already in DB, don't overwrite a possibly-live row
 		}
-
 		metaPath := filepath.Join(contestPath, "problems", p.ID, "meta.json")
 		metaBytes, err := os.ReadFile(metaPath)
 		if err != nil {
@@ -124,7 +114,8 @@ func LoadOrInitProblems(manifest *Manifest) error {
 			TimeLimit:   time.Duration(meta.TimeLimitMS) * time.Millisecond,
 			MemoryLimit: meta.MemoryLimitMB,
 		}
-		if err := db.DB.Create(&problem).Error; err != nil {
+		err = db.CreateProblem(problem)
+		if err != nil {
 			return fmt.Errorf("failed to insert problem %d: %w", id, err)
 		}
 	}

@@ -1,4 +1,5 @@
 package judge
+
 //The code in this file looks AI generated cuz its written by me but then it looked so goddamn ugly I was disgusted,bamboozled
 // and impressed with my ability to write shitty code that i had to beg claude code to Reformat the whole file and make it look prettty like a princess
 

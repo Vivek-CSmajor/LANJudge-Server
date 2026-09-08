@@ -8,16 +8,16 @@ import (
 	"log"
 )
 
-func main(){
+func main() {
 	//Simulated submission
 	if err := judge.InitializeRunTime(); err != nil {
 		log.Fatal("failed to initialize runtime directories: ", err)
 	}
 	db.InitDB()
 	models.ActiveContest = db.LoadOrInitContest()
-	manifest,err := judge.LoadManifest()
+	manifest, err := judge.LoadManifest()
 	if err != nil {
-		log.Fatal("failed to load manifest: ",err)
+		log.Fatal("failed to load manifest: ", err)
 	}
 	judge.ActiveManifest = manifest
 	if err := judge.LoadOrInitProblems(manifest); err != nil {

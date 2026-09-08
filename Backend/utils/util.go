@@ -1,10 +1,8 @@
 package utils
 
 import (
-
 	"crypto/rand"
 	"encoding/json"
-
 
 	"io"
 	"log"
@@ -13,10 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-
 )
-
 
 func TokenGenerator(n int) string { //8 bit for logincode and more for sessionToken
 	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
@@ -33,29 +28,28 @@ func TokenGenerator(n int) string { //8 bit for logincode and more for sessionTo
 	return string(b)
 }
 
-
-func CopyFile(src string, dst string) error{
-	input , err := os.Open(src)
+func CopyFile(src string, dst string) error {
+	input, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer input.Close()
-	output , err := os.Create(dst)
+	output, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer output.Close()
-	_, err = io.Copy(output,input)
+	_, err = io.Copy(output, input)
 	return err
 }
 
-func ListInputFiles(dir string) ([]string, error){
+func ListInputFiles(dir string) ([]string, error) {
 	var files []string
 	entries, err := os.ReadDir(dir)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
-	for _, entry := range entries{ //range returns index and value
+	for _, entry := range entries { //range returns index and value
 		name := entry.Name()
 		if strings.HasSuffix(name, ".in") {
 			files = append(files, filepath.Join(dir, name))
@@ -64,23 +58,23 @@ func ListInputFiles(dir string) ([]string, error){
 	return files, nil
 }
 
-func WriteJSON(w http.ResponseWriter, status int, a any){
+func WriteJSON(w http.ResponseWriter, status int, a any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(a)
 }
 
-func NormalizeOutput(s string) string{
-	s = strings.ReplaceAll(s,"\r\n","\n")//convert windwos line endings to unix
-	lines := strings.Split(s,"\n")
-	for i:= range lines{
+func NormalizeOutput(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n") //convert windwos line endings to unix
+	lines := strings.Split(s, "\n")
+	for i := range lines {
 		lines[i] = strings.TrimSpace(lines[i])
 	}
-	return strings.TrimSpace(strings.Join(lines,"\n"))
+	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
-func ReadProblemStatement(problemPath string)(string, error){
-	path := filepath.Join(problemPath,"statement.md")
+func ReadProblemStatement(problemPath string) (string, error) {
+	path := filepath.Join(problemPath, "statement.md")
 	data, err := os.ReadFile(path)
 	return string(data), err
 }

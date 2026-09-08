@@ -45,12 +45,12 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// push to queue
-	if judge.SubmissionQueue == nil {//exists but aint containing nuthin
+	if judge.SubmissionQueue == nil { //exists but aint containing nuthin
 		http.Error(w, "queue not initialized", 500)
 		return
 	}
 	judge.SubmissionQueue <- submissionID
-	
+
 	utils.WriteJSON(w, 200, models.SubmitResponse{
 		SubmissionID: submissionID,
 		Status:       "Queued",
@@ -65,22 +65,21 @@ type SubmissionDetail struct {
 	Code string `json:"code"`
 }
 
-func GetSubmissionHandler(w http.ResponseWriter,r *http.Request){
+func GetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	//id := strings.TrimPrefix(r.URL.Path,"/submissions/")
 	id := r.PathValue("id")
-	var submission models.Submission
-	err := db.DB.First(&submission,id).Error
-	if err != nil{
-		http.Error(w,"Submission Not found",http.StatusNotFound)
+	submission, err := db.GetSubmissionByRawID(id)
+	if err != nil {
+		http.Error(w, "Submission Not found", http.StatusNotFound)
 		return
 	}
 	team := TeamFromContext(r)
 	if submission.TeamID != team.ID {
-		http.Error(w,"Forbidden",http.StatusForbidden)
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 	code := ""
@@ -101,13 +100,7 @@ func ListMySubmissionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	team := TeamFromContext(r)
 
-	query := db.DB.Where("team_id = ?", team.ID)
-	if problemID := r.URL.Query().Get("problem_id"); problemID != "" {
-		query = query.Where("problem_id = ?", problemID)
-	}
-
-	var submissions []models.Submission
-	err := query.Order("submitted_at DESC").Find(&submissions).Error
+	submissions, err := db.GetSubmissionsForTeam(team.ID, r.URL.Query().Get("problem_id"))
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return

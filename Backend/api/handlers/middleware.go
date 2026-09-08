@@ -10,41 +10,40 @@ import (
 	"time"
 )
 
-func LoggingMiddleware(next http.Handler) http.Handler{
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
-		log.Printf(" --> %s %s",r.Method,r.URL.Path)
-		next.ServeHTTP(w,r)
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf(" --> %s %s", r.Method, r.URL.Path)
+		next.ServeHTTP(w, r)
 	})
 }
 
-type contextKey string 
+type contextKey string
+
 const teamContextKey contextKey = "team"
 
-func RequireAuth(next http.HandlerFunc) http.HandlerFunc{
+func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//check req and give suitable response
 		token := r.Header.Get("Authorization")
-		token  = strings.TrimPrefix(token,"Bearer ")
+		token = strings.TrimPrefix(token, "Bearer ")
 		if token == "" {
-			http.Error(w,"missing",http.StatusUnauthorized)
-			return 
+			http.Error(w, "missing", http.StatusUnauthorized)
+			return
 		}
-		var session models.Sessions
-		err := db.DB.Where("session_token = ? AND active = ? AND expires_at > ?",token,true,time.Now()).First(&session).Error
+		session, err := db.GetActiveSessionByToken(token)
 		if err != nil {
-			http.Error(w,"unauthorized",http.StatusUnauthorized)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		var team models.Teams
 		//add team into the context so handlers can use it
-		db.DB.First(&team,session.TeamID)
+		team, _ := db.GetByID[models.Teams](session.TeamID)
 		if team.Status != nil && (*team.Status == "disabled" || *team.Status == "disqualified") {
-			http.Error(w,"team account is "+*team.Status,http.StatusForbidden)
+			http.Error(w, "team account is "+*team.Status, http.StatusForbidden)
 			return
 		}
-		ctx := context.WithValue(r.Context(),teamContextKey,team)
+		ctx := context.WithValue(r.Context(), teamContextKey, team)
 		//if good call next
-		next(w,r.WithContext(ctx))
+		next(w, r.WithContext(ctx))
 	}
 }
 
@@ -53,26 +52,40 @@ func TeamFromContext(r *http.Request) models.Teams {
 	return team
 }
 
-func RequireAdminAuth(next http.HandlerFunc) http.HandlerFunc{
+func RequireContestOpen(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		contest := models.ActiveContest
+		if contest == nil || contest.Status != models.ContestActive {
+			http.Error(w, "contest is not active", http.StatusForbidden)
+			return
+		}
+		now := time.Now()
+		if now.Before(contest.StartTime) || now.After(contest.EndTime) {
+			http.Error(w, "contest is not currently open", http.StatusForbidden)
+			return
+		}
+		next(w, r)
+	}
+}
+
+func RequireAdminAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//check req and give suitable response
 		token := r.Header.Get("Authorization")
-		token  = strings.TrimPrefix(token,"Bearer ")
+		token = strings.TrimPrefix(token, "Bearer ")
 		if token == "" {
-			http.Error(w,"missing",http.StatusUnauthorized)
-			return 
-		}
-		var session models.Sessions
-		err := db.DB.Where("session_token = ? AND active = ? AND admin = ?",token,true,true).First(&session).Error
-		if err != nil {
-			http.Error(w,"unauthorized",http.StatusUnauthorized)
+			http.Error(w, "missing", http.StatusUnauthorized)
 			return
 		}
-		var team models.Teams
+		session, err := db.GetActiveAdminSessionByToken(token)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
 		//add team into the context so handlers can use it
-		db.DB.First(&team,session.TeamID)
-		ctx := context.WithValue(r.Context(),teamContextKey,team)
+		team, _ := db.GetByID[models.Teams](session.TeamID)
+		ctx := context.WithValue(r.Context(), teamContextKey, team)
 		//if good call next
-		next(w,r.WithContext(ctx))
+		next(w, r.WithContext(ctx))
 	}
 }

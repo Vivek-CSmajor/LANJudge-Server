@@ -92,7 +92,10 @@
   transition: opacity 0.15s;
   color: #16171d;
 }
-.action-btn:hover { opacity: 0.85; }
+.action-btn:hover:not(:disabled) { opacity: 0.85; }
+.action-btn:disabled { opacity: 0.55; cursor: default; }
+
+.duration-input:disabled { opacity: 0.6; }
 
 .btn-start { background: #4ade80; }
 .btn-pause { background: #fbbf24; }

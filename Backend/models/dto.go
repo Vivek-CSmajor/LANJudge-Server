@@ -2,42 +2,42 @@ package models
 
 import "time"
 
-type SubmitRequest  struct { 
-	TeamID int `json:"team_id"`
-	ProblemID int `json:"problem_id"`
-	Code string `json:"code"`
+type SubmitRequest struct {
+	TeamID    int    `json:"team_id"`
+	ProblemID int    `json:"problem_id"`
+	Code      string `json:"code"`
 	//Input string `json:"input"`
 	Language string `json:"language"`
 }
 
 type SubmitResponse struct {
-	SubmissionID int `json:"submission_id"`
-	Status string `json:"status"`
+	SubmissionID int    `json:"submission_id"`
+	Status       string `json:"status"`
 }
 
 type RegisterRequest struct {
-	Name string `json:"name"`
-	Members string `json:"members"` 
+	Name    string `json:"name"`
+	Members string `json:"members"`
 }
 
 type RegisterResponse struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
 	LoginCode string `json:"login_code"`
 }
 
 type LoginRequest struct {
-	Name string `json:"name"`
-	LoginCode string `json:"login_code"`
+	Name          string `json:"name"`
+	LoginCode     string `json:"login_code"`
 	BoundDeviceID string `json:"bound_device_id"`
 }
 
 type AdminLoginRequest struct {
-	Username string `json:"user_name"`
+	Username  string `json:"user_name"`
 	LoginCode string `json:"login_code"`
 }
 
 type LoginResponse struct {
-	SessionToken string `json:"session_token"`	
+	SessionToken string `json:"session_token"`
 }
 
 type UpdateTeamStatusRequest struct {
@@ -45,19 +45,18 @@ type UpdateTeamStatusRequest struct {
 }
 
 type ChangeContestState struct {
-	StartTime *time.Time `json:"start_time"`
-	EndTime *time.Time	`json:"end_time"`
-	Status ContestStatus `json:"status"`
+	StartTime *time.Time    `json:"start_time"`
+	EndTime   *time.Time    `json:"end_time"`
+	Status    ContestStatus `json:"status"`
 }
 
 type RunRequest struct {
-	Code string `json:"code"`
+	Code     string `json:"code"`
 	Language string `json:"language"`
-	Input string `json:"input"`
+	Input    string `json:"input"`
 }
 
 type RunResponse struct {
 	Output string `json:"output"`
-	Error string `json:"error"`
+	Error  string `json:"error"`
 }
-

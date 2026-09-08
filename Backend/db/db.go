@@ -8,16 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var conn *gorm.DB
 
-func InitDB(){
+func InitDB() {
 	db, err := gorm.Open(sqlite.Open("server_data/runtime/db.sqlite"), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
 	log.Println("DB connection established")
-	db.AutoMigrate(&models.Submission{},&models.Teams{},&models.Sessions{},&models.DeviceOverride{},&models.Contest{},&models.TeamProblemStats{},&models.ScoreBoard{},&models.Problem{})
-	
-	DB = db
-}
+	db.AutoMigrate(&models.Submission{}, &models.Teams{}, &models.Sessions{}, &models.DeviceOverride{}, &models.Contest{}, &models.TeamProblemStats{}, &models.ScoreBoard{}, &models.Problem{})
 
+	conn = db
+}

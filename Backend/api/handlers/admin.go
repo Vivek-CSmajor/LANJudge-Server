@@ -22,23 +22,24 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.RegisterRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w,"Invalid Request body ", http.StatusBadRequest)
+		http.Error(w, "Invalid Request body ", http.StatusBadRequest)
 		return
 	}
 	loginCode := utils.TokenGenerator(8)
 	res := models.RegisterResponse{
-		Name : req.Name,
+		Name:      req.Name,
 		LoginCode: loginCode,
 	}
-	err = db.RegisterTeamRepository(res);if err != nil{
-		http.Error(w,"Team may already exists", http.StatusConflict) 
-		return 
+	err = db.RegisterTeamRepository(res)
+	if err != nil {
+		http.Error(w, "Team may already exists", http.StatusConflict)
+		return
 	}
 	log.Println("Team Registered")
-	utils.WriteJSON(w ,200,res)
-} 
+	utils.WriteJSON(w, 200, res)
+}
 
-func AdminLoginHandler(w http.ResponseWriter, r *http.Request){
+func AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Wrong method called in login Handler", http.StatusMethodNotAllowed)
 		return
@@ -47,7 +48,7 @@ func AdminLoginHandler(w http.ResponseWriter, r *http.Request){
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Bad request body bitch", http.StatusBadRequest)
-		return 
+		return
 	}
 	if judge.ActiveManifest == nil ||
 		req.Username != judge.ActiveManifest.AdminUsername ||
@@ -56,110 +57,123 @@ func AdminLoginHandler(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	token := utils.TokenGenerator(16)
-	session := models.Sessions {
-		SessionToken : token,
-		Active : true,
-		Admin : true,
-		CreatedAt : time.Now(),
-		ExpiresAt : time.Now().Add(6*time.Hour),
+	session := models.Sessions{
+		SessionToken: token,
+		Active:       true,
+		Admin:        true,
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(6 * time.Hour),
 	}
-	if err := db.DB.Create(&session).Error;err != nil{
-		http.Error(w,"Internal error DB",http.StatusInternalServerError)
+	if err := db.CreateSession(session); err != nil {
+		http.Error(w, "Internal error DB", http.StatusInternalServerError)
 		return
 	}
-	utils.WriteJSON(w,200,map[string]string{"session_token":token})
+	utils.WriteJSON(w, 200, map[string]string{"session_token": token})
 }
 
-func AdminGetSubmissionsHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet{
+func AdminGetSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	var submissions []models.Submission
-	db.DB.Find(&submissions)
-	utils.WriteJSON(w,200,submissions)
+	submissions, err := db.GetAllSubmissions()
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	utils.WriteJSON(w, 200, submissions)
 }
 
-func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet{
+func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
 	submissionID := r.PathValue("id")
-	subID,err := strconv.Atoi(submissionID)
+	subID, err := strconv.Atoi(submissionID)
 	if err != nil {
 		http.Error(w, "Invalid submission id", http.StatusBadRequest)
 		return
 	}
 	submissionPath := judge.SubmissionPathByID(subID)
-	var submission models.Submission
-	if err := db.DB.First(&submission, subID).Error; err != nil {
+	submission, err := db.GetSubmissionByID(subID)
+	if err != nil {
 		http.Error(w, "Submission not found", http.StatusNotFound)
 		return
 	}
 	//submissionPath = filepath.Join(submissionPath,"/")
 	spec := judge.LanguageSpecs[submission.Language]
-	code, err:= os.ReadFile(submissionPath+spec.SourceFile)
+	code, err := os.ReadFile(submissionPath + spec.SourceFile)
 	if err != nil {
 		http.Error(w, "Failed to read submission source", http.StatusInternalServerError)
 		return
 	}
 	compileLog := ""
-	if b , err := os.ReadFile(submissionPath+"/compile.log");err == nil {//only populate compileLog if readfile is scuessful meaning there was something in it 
+	if b, err := os.ReadFile(submissionPath + "/compile.log"); err == nil { //only populate compileLog if readfile is scuessful meaning there was something in it
 		compileLog = string(b)
 	}
-	if err != nil{
+	if err != nil {
 		http.Error(w, "internal 123124", http.StatusInternalServerError)
 		return
 	}
 	resp := map[string]any{
-		"code" : string(code),
-		"verdict" : submission.Verdict,
-		"status" : submission.Status,
-		"compile_log" : compileLog,
-		"team_id" : submission.TeamID,
-		"problem_id" : submission.ProblemID,
+		"code":        string(code),
+		"verdict":     submission.Verdict,
+		"status":      submission.Status,
+		"compile_log": compileLog,
+		"team_id":     submission.TeamID,
+		"problem_id":  submission.ProblemID,
 	}
-	utils.WriteJSON(w,200,resp)
+	utils.WriteJSON(w, 200, resp)
 }
 
-func AdminRejudgeSubmissionHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodPost{
+func AdminRejudgeSubmissionHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
 	submissionID := r.PathValue("id")
-	subID,_ := strconv.Atoi(submissionID)
+	subID, err := strconv.Atoi(submissionID)
+	if err != nil {
+		http.Error(w, "Invalid submission id", http.StatusBadRequest)
+		return
+	}
 	sub, err := db.GetSubmissionByID(subID)
-	if err != nil{
+	if err != nil {
 		http.Error(w, "Submission not found", http.StatusNotFound)
 		return
 	}
-	sub.Status = "Queued"
+	if err := db.ResetSubmissionForRejudge(subID); err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	sub.Status = string(models.SubmissionQueued)
 	sub.Verdict = ""
-	db.DB.Save(&sub)
 
-	if judge.SubmissionQueue == nil{
+	if judge.SubmissionQueue == nil {
 		http.Error(w, "queue not initialized", http.StatusInternalServerError)
 		return
 	}
 	judge.SubmissionQueue <- subID
 
-	utils.WriteJSON(w,200,sub)
+	utils.WriteJSON(w, 200, sub)
 }
 
-func AdminGetTeamsHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet{
+func AdminGetTeamsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	var teams []models.Teams
-	db.DB.Find(&teams)
-	utils.WriteJSON(w,200,teams)
+	teams, err := db.GetAllTeams()
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	utils.WriteJSON(w, 200, teams)
 }
 
-func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodPatch{//cuz we are only partially updating 
+func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch { //cuz we are only partially updating
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
@@ -173,17 +187,29 @@ func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "invalid status", http.StatusBadRequest)
 		return
 	}
-	teamID := r.PathValue("id")
-	db.DB.Model(&models.Teams{}).Where("id = ?",teamID).Update("status",req.Status)
-	utils.WriteJSON(w,200,"Team Status Updated")
+	teamID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid team id", http.StatusBadRequest)
+		return
+	}
+	rows, err := db.UpdateTeamStatus(teamID, req.Status)
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	if rows == 0 {
+		http.Error(w, "team not found", http.StatusNotFound)
+		return
+	}
+	utils.WriteJSON(w, 200, "Team Status Updated")
 	//disabled teams should be not be able to view anything on their screen exept a pop up that cant be removed saying "dsiabled"
-	//disqualified teams should not be able to login or submit and be immediately logged out 
+	//disqualified teams should not be able to login or submit and be immediately logged out
 	//disqualified teams should be ignored in scoreboard during ordering and push them to bottom and sort on problems only on enabled teams
 }
 
-func AdminChangeContestState(w http.ResponseWriter, r *http.Request){
+func AdminChangeContestState(w http.ResponseWriter, r *http.Request) {
 	// should be path because its a partial update like duhhh bitch
-	if r.Method != http.MethodPatch{
+	if r.Method != http.MethodPatch {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
@@ -192,7 +218,7 @@ func AdminChangeContestState(w http.ResponseWriter, r *http.Request){
 	if err != nil {
 		http.Error(w, "internal error ", http.StatusInternalServerError)
 		return
-	}	
+	}
 	switch req.Status {
 	case models.ContestPending, models.ContestActive, models.ContestPaused, models.ContestEnded:
 	default:
@@ -206,46 +232,55 @@ func AdminChangeContestState(w http.ResponseWriter, r *http.Request){
 		models.ActiveContest.EndTime = *req.EndTime
 	}
 	models.ActiveContest.Status = req.Status
-	db.DB.Save(models.ActiveContest)//believe me somehow its saving to the contests table
-	//cuz the active contest is a pointer in memory so saving it db takes the pointer, goes to matching row with that id 
+	if err := db.SaveContest(models.ActiveContest); err != nil { //believe me somehow its saving to the contests table
+		//cuz the active contest is a pointer in memory so saving it db takes the pointer, goes to matching row with that id
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
 	ws.BroadcastTime()
-	utils.WriteJSON(w,200,models.ActiveContest)
+	utils.WriteJSON(w, 200, models.ActiveContest)
 }
 
-func AdminGetScoreboard(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet{
+func AdminGetScoreboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	ScoreboardHandler(w,r)
+	ScoreboardHandler(w, r)
 }
 
-func AdminGetOverridesHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet{
+func AdminGetOverridesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	var overrides []models.DeviceOverride
-	db.DB.Find(&overrides)
-	utils.WriteJSON(w,200,overrides)
+	overrides, err := db.GetAllOverrides()
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	utils.WriteJSON(w, 200, overrides)
 }
 
-func AdminApproveOverride(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodPost{
+func AdminApproveOverride(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	id := r.PathValue("id")
+	overrideID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid override id", http.StatusBadRequest)
+		return
+	}
 	var req struct {
 		Action string `json:"action"`
 	}
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "internal error ", http.StatusInternalServerError)
 		return
 	}
-	var overrideRecord models.DeviceOverride
-	if err := db.DB.First(&overrideRecord,"id = ?",id).Error; err != nil {
+	overrideRecord, err := db.GetOverrideByID(overrideID)
+	if err != nil {
 		http.Error(w, "Override not found", http.StatusNotFound)
 		return
 	}
@@ -253,21 +288,30 @@ func AdminApproveOverride(w http.ResponseWriter, r *http.Request){
 		http.Error(w, "Override already resolved", http.StatusConflict)
 		return
 	}
-	if req.Action == "approve"{
+	if req.Action == "approve" {
 		overrideRecord.Status = "approved"
-		db.DB.Model(&models.Teams{}).Where("id = ?",overrideRecord.TeamID).Update("bound_device_id",overrideRecord.NewDeviceID)
-		db.DB.Model(&models.Sessions{}).Where("team_id = ?",overrideRecord.TeamID).Update("active",false)
-	}else if req.Action == "reject"{
+		if err := db.UpdateTeamBoundDevice(overrideRecord.TeamID, overrideRecord.NewDeviceID); err != nil {
+			http.Error(w, "DB error", http.StatusInternalServerError)
+			return
+		}
+		if err := db.DeactivateTeamSessions(overrideRecord.TeamID); err != nil {
+			http.Error(w, "DB error", http.StatusInternalServerError)
+			return
+		}
+	} else if req.Action == "reject" {
 		overrideRecord.Status = "rejected"
 	}
-	db.DB.Save(&overrideRecord)
-	utils.WriteJSON(w,200,overrideRecord)
+	if err := db.UpdateOverrideStatus(overrideID, overrideRecord.Status); err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	utils.WriteJSON(w, 200, overrideRecord)
 }
 
-func AdminGetContestStateHandler(w http.ResponseWriter, r *http.Request){
-	if r.Method != http.MethodGet{
+func AdminGetContestStateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
 		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
 		return
 	}
-	utils.WriteJSON(w,200,models.ActiveContest)
+	utils.WriteJSON(w, 200, models.ActiveContest)
 }
