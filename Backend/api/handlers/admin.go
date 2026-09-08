@@ -112,10 +112,6 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	if b, err := os.ReadFile(submissionPath + "/compile.log"); err == nil { //only populate compileLog if readfile is scuessful meaning there was something in it
 		compileLog = string(b)
 	}
-	if err != nil {
-		http.Error(w, "internal 123124", http.StatusInternalServerError)
-		return
-	}
 	resp := map[string]any{
 		"code":        string(code),
 		"verdict":     submission.Verdict,
