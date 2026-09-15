@@ -263,7 +263,7 @@ func UpdateTeamProblemStatsAndScoreboard(sub models.Submission, startTime time.T
 func GetScoreboard() ([]models.ScoreBoard, error) {
 	var scoreboard []models.ScoreBoard
 	err := conn.Joins("JOIN teams ON teams.id = score_boards.team_id").
-		Where("teams.status IS NULL OR teams.status <> ?", "disqualified").
+		Where("teams.status IS NULL OR teams.status <> ?", models.TeamDisqualified).
 		Order("total_solved DESC").
 		Order("total_penalty ASC").
 		Order("last_ac_time ASC").

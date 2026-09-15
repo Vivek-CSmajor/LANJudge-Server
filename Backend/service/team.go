@@ -32,7 +32,7 @@ func (s *TeamService) List() ([]models.Teams, error) {
 
 func (s *TeamService) UpdateStatus(teamID int, status string) error {
 	switch status {
-	case StatusEnabled, StatusDisabled, StatusDisqualified:
+	case models.TeamEnabled, models.TeamDisabled, models.TeamDisqualified:
 	default:
 		return ErrInvalidInput
 	}

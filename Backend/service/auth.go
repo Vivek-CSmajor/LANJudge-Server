@@ -23,7 +23,7 @@ func (s *AuthService) Login(req models.LoginRequest, deviceID string) (string, e
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}
-	if team.Status != nil && *team.Status == StatusDisqualified {
+	if team.IsDisqualified() {
 		return "", ErrDisqualified
 	}
 	//3 cases

@@ -19,6 +19,32 @@ const (
 	SubmissionDone    SubmissionStatus = "Done"    // judged; Verdict is now set
 )
 
+const (
+	TeamEnabled      = "enabled"
+	TeamDisqualified = "disqualified"
+	TeamDisabled     = "disabled"
+)
+
+func (t Teams) CanSubmit() (bool, string) {
+	if t.Status == nil {
+		return true, ""
+	}
+	switch *t.Status {
+	case TeamDisqualified:
+		return false, "team is disqualified"
+	case TeamDisabled:
+		return false, "team account is disabled"
+	}
+	return true, ""
+}
+
+// IsDisqualified reports whether a team has been permanently disqualified —
+// narrower than CanAuthenticate, for places where a merely-disabled team
+// should still be let through (e.g. logging in).
+func (t Teams) IsDisqualified() bool {
+	return t.Status != nil && *t.Status == TeamDisqualified
+}
+
 type ContestStatus string
 
 const (

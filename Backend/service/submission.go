@@ -22,31 +22,12 @@ func NewSubmissionService(queue chan int) *SubmissionService {
 	return &SubmissionService{queue: queue}
 }
 
-const (
-	StatusEnabled      = "enabled"
-	StatusDisqualified = "disqualified"
-	StatusDisabled     = "disabled"
-)
-
-func CanSubmit(t models.Teams) (bool, string) {
-	if t.Status == nil {
-		return true, ""
-	}
-	switch *t.Status {
-	case StatusDisqualified:
-		return false, "team is disqualified"
-	case StatusDisabled:
-		return false, "team account is disabled"
-	}
-	return true, ""
-}
-
 func (s *SubmissionService) Submit(req models.SubmitRequest) (int, error) {
 	team, err := db.GetTeamByID(req.TeamID)
 	if err != nil {
 		return 0, fmt.Errorf("No team with this ID error : %w", err)
 	}
-	if yes, reason := CanSubmit(team); !yes {
+	if yes, reason := team.CanSubmit(); !yes {
 		return 0, fmt.Errorf("Team not allowed to submit reason : %w", reason)
 	}
 	submissionID, err := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
