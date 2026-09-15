@@ -1,29 +1,24 @@
 package handlers
 
 import (
-	"campuscode/contest"
-	"campuscode/db"
-	"campuscode/models"
 	"campuscode/utils"
-	"log"
 	"net/http"
-	"path/filepath"
 	"strconv"
 )
 
-func ProblemsHandler(w http.ResponseWriter, r *http.Request) {
-	problems, err := db.GetAllProblems()
+func (h *Handlers) ProblemsHandler(w http.ResponseWriter, r *http.Request) {
+	problems, err := h.problems.List()
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 	}
 	utils.WriteJSON(w, 200, problems)
 }
 
-func ContestHandler(w http.ResponseWriter, r *http.Request) {
-	utils.WriteJSON(w, 200, contest.Active.Current())
+func (h *Handlers) ContestHandler(w http.ResponseWriter, r *http.Request) {
+	utils.WriteJSON(w, 200, h.contest.Current())
 }
 
-func ProblemHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ProblemHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	strconv.Atoi(id)
 
@@ -31,21 +26,10 @@ func ProblemHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "id is empty in url", http.StatusBadRequest)
 		return
 	}
-	problemPath := filepath.Join("server_data", "contest", "problems", id)
-	description, err := utils.ReadProblemStatement(problemPath)
-	if err != nil {
-		log.Printf("failed to read statement.md for problem %s: %v", id, err)
-	}
-	problem, err := db.GetProblemByID(id)
+	resp, err := h.problems.GetByID(id)
 	if err != nil {
 		http.Error(w, "internal server error 10200", http.StatusInternalServerError)
 		return
 	}
-	utils.WriteJSON(w, 200, models.ProblemResponse{
-		ID:          id,
-		Title:       problem.Title,
-		TimeLimit:   problem.TimeLimit,
-		MemoryLimit: problem.MemoryLimit,
-		Description: description,
-	})
+	utils.WriteJSON(w, 200, resp)
 }

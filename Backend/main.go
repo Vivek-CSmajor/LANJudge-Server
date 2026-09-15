@@ -26,6 +26,7 @@ func main() {
 	}
 	queue := judge.InitializeQueue()
 	judge.StartWorkers(3, queue, contest.Active)
-	h := handlers.NewHandlers(contest.Active, manifest, queue)
+	runSemaphore := make(chan struct{}, 3)
+	h := handlers.NewHandlers(contest.Active, manifest, queue, runSemaphore)
 	api.Server(h)
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"campuscode/api/ws"
-	"campuscode/db"
 	"campuscode/utils"
 	"encoding/json"
 
@@ -19,10 +18,10 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-func ScoreboardHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ScoreboardHandler(w http.ResponseWriter, r *http.Request) {
 	//a fall back to allow plain http fetches instead of a ws always
 	if !websocket.IsWebSocketUpgrade(r) {
-		scoreboard, err := db.GetScoreboard()
+		scoreboard, err := h.scoreboard.Get()
 		if err != nil {
 			http.Error(w, "Db error when sorting", http.StatusInternalServerError)
 			return
@@ -40,7 +39,7 @@ func ScoreboardHandler(w http.ResponseWriter, r *http.Request) {
 	ws.Clients[conn] = true //ow my backend will remember this connection and if it exists
 	ws.Mu.Unlock()
 	defer conn.Close()
-	scoreboard, err := db.GetScoreboard()
+	scoreboard, err := h.scoreboard.Get()
 	if err != nil {
 		http.Error(w, "Db error when sorting", http.StatusInternalServerError)
 		return

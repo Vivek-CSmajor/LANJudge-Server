@@ -61,8 +61,16 @@ type RunResponse struct {
 	Error  string `json:"error"`
 }
 
-
 type SubmissionDetail struct {
 	Submission
 	Code string `json:"code"`
+}
+
+type AdminSubmissionDetail struct {
+	Code       string            `json:"code"`
+	Verdict    SubmissionVerdict `json:"verdict"`
+	Status     string            `json:"status"`
+	CompileLog string            `json:"compile_log"`
+	TeamID     int               `json:"team_id"`
+	ProblemID  int               `json:"problem_id"`
 }

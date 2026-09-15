@@ -26,35 +26,35 @@ func Server(h *handlers.Handlers) {
 	http.HandleFunc("GET /health", handlers.HealthHandler)
 
 	http.HandleFunc("POST /submit", handlers.RequireAuth(handlers.RequireContestOpen(h.SubmitHandler)))
-	http.HandleFunc("GET /submission/{id}", handlers.RequireAuth(handlers.GetSubmissionHandler))
-	http.HandleFunc("GET /submissions/me", handlers.RequireAuth(handlers.ListMySubmissionsHandler))
-	http.HandleFunc("POST /run", handlers.RequireAuth(handlers.RunHandler))
+	http.HandleFunc("GET /submission/{id}", handlers.RequireAuth(h.GetSubmissionHandler))
+	http.HandleFunc("GET /submissions/me", handlers.RequireAuth(h.ListMySubmissionsHandler))
+	http.HandleFunc("POST /run", handlers.RequireAuth(h.RunHandler))
 
 	//auth rotues
-	http.HandleFunc("POST /register", handlers.RegisterHandler)
-	http.HandleFunc("POST /login", handlers.LoginHandler)
+	http.HandleFunc("POST /register", h.RegisterHandler)
+	http.HandleFunc("POST /login", h.LoginHandler)
 	//http.HandleFunc("/logout", handlers.LogoutHandler)
 
-	http.HandleFunc("GET /problems", handlers.RequireAuth(handlers.RequireContestOpen(handlers.ProblemsHandler)))
-	http.HandleFunc("GET /problems/{id}", handlers.RequireAuth(handlers.RequireContestOpen(handlers.ProblemHandler)))
+	http.HandleFunc("GET /problems", handlers.RequireAuth(handlers.RequireContestOpen(h.ProblemsHandler)))
+	http.HandleFunc("GET /problems/{id}", handlers.RequireAuth(handlers.RequireContestOpen(h.ProblemHandler)))
 
 	//contest handlers
-	http.HandleFunc("GET /contest", handlers.RequireAuth(handlers.ContestHandler))
+	http.HandleFunc("GET /contest", handlers.RequireAuth(h.ContestHandler))
 
 	//scoreboard
-	http.HandleFunc("GET /scoreboard", handlers.ScoreboardHandler)
+	http.HandleFunc("GET /scoreboard", h.ScoreboardHandler)
 
 	//admin
 	http.HandleFunc("POST /admin/login", h.AdminLoginHandler)
-	http.HandleFunc("GET /admin/submissions", handlers.RequireAdminAuth(handlers.AdminGetSubmissionsHandler))
-	http.HandleFunc("GET /admin/submissions/{id}", handlers.RequireAdminAuth(handlers.AdminGetSubmissionHandler))
+	http.HandleFunc("GET /admin/submissions", handlers.RequireAdminAuth(h.AdminGetSubmissionsHandler))
+	http.HandleFunc("GET /admin/submissions/{id}", handlers.RequireAdminAuth(h.AdminGetSubmissionHandler))
 	http.HandleFunc("POST /admin/submissions/{id}/rejudge", handlers.RequireAdminAuth(h.AdminRejudgeSubmissionHandler))
-	http.HandleFunc("PATCH /admin/teams/{id}", handlers.RequireAdminAuth(handlers.AdminChangeTeamStatusHandler))
-	http.HandleFunc("GET /admin/teams", handlers.RequireAdminAuth(handlers.AdminGetTeamsHandler))
-	http.HandleFunc("GET /admin/scoreboard", handlers.RequireAdminAuth(handlers.AdminGetScoreboard))
-	http.HandleFunc("GET /admin/overrides", handlers.RequireAdminAuth(handlers.AdminGetOverridesHandler))
-	http.HandleFunc("POST /admin/overrides/{id}", handlers.RequireAdminAuth(handlers.AdminApproveOverride))
-	http.HandleFunc("GET /admin/contest", handlers.RequireAdminAuth(handlers.AdminGetContestStateHandler))
+	http.HandleFunc("PATCH /admin/teams/{id}", handlers.RequireAdminAuth(h.AdminChangeTeamStatusHandler))
+	http.HandleFunc("GET /admin/teams", handlers.RequireAdminAuth(h.AdminGetTeamsHandler))
+	http.HandleFunc("GET /admin/scoreboard", handlers.RequireAdminAuth(h.AdminGetScoreboard))
+	http.HandleFunc("GET /admin/overrides", handlers.RequireAdminAuth(h.AdminGetOverridesHandler))
+	http.HandleFunc("POST /admin/overrides/{id}", handlers.RequireAdminAuth(h.AdminApproveOverride))
+	http.HandleFunc("GET /admin/contest", handlers.RequireAdminAuth(h.AdminGetContestStateHandler))
 	http.HandleFunc("PATCH /admin/contest", handlers.RequireAdminAuth(h.AdminChangeContestState))
 
 	ws.StartTimeSyncTicker()
