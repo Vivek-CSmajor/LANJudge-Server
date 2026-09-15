@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"campuscode/contest"
 	"campuscode/db"
 	"campuscode/models"
 
@@ -46,14 +47,15 @@ func BroadcastScoreboard() {
 }
 
 func BroadcastTime() {
-	if models.ActiveContest == nil {
+	if contest.Active == nil {
 		return
 	}
+	c := contest.Active.Current()
 	broadCast(contestMsg{
 		Type:        "time_sync",
-		Status:      models.ActiveContest.Status,
+		Status:      c.Status,
 		CurrentTime: time.Now(),
-		EndTime:     models.ActiveContest.EndTime,
+		EndTime:     c.EndTime,
 	})
 }
 

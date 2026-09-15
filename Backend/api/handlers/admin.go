@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"campuscode/api/ws"
+	"campuscode/contest"
 	"campuscode/db"
 	"campuscode/judge"
 	"campuscode/models"
@@ -15,10 +16,6 @@ import (
 )
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Wrong method is called , must call POST", http.StatusMethodNotAllowed)
-		return
-	}
 	var req models.RegisterRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -39,20 +36,16 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, 200, res)
 }
 
-func AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Wrong method called in login Handler", http.StatusMethodNotAllowed)
-		return
-	}
+func (h *Handlers) AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.AdminLoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Bad request body bitch", http.StatusBadRequest)
 		return
 	}
-	if judge.ActiveManifest == nil ||
-		req.Username != judge.ActiveManifest.AdminUsername ||
-		req.LoginCode != judge.ActiveManifest.AdminLoginCode {
+	if h.manifest == nil ||
+		req.Username != h.manifest.AdminUsername ||
+		req.LoginCode != h.manifest.AdminLoginCode {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -72,10 +65,6 @@ func AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminGetSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	submissions, err := db.GetAllSubmissions()
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
@@ -85,10 +74,6 @@ func AdminGetSubmissionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	submissionID := r.PathValue("id")
 	subID, err := strconv.Atoi(submissionID)
 	if err != nil {
@@ -123,11 +108,7 @@ func AdminGetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, 200, resp)
 }
 
-func AdminRejudgeSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
+func (h *Handlers) AdminRejudgeSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	submissionID := r.PathValue("id")
 	subID, err := strconv.Atoi(submissionID)
 	if err != nil {
@@ -146,20 +127,16 @@ func AdminRejudgeSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	sub.Status = string(models.SubmissionQueued)
 	sub.Verdict = ""
 
-	if judge.SubmissionQueue == nil {
+	if h.submissionQueue == nil {
 		http.Error(w, "queue not initialized", http.StatusInternalServerError)
 		return
 	}
-	judge.SubmissionQueue <- subID
+	h.submissionQueue <- subID
 
 	utils.WriteJSON(w, 200, sub)
 }
 
 func AdminGetTeamsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	teams, err := db.GetAllTeams()
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
@@ -169,10 +146,6 @@ func AdminGetTeamsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPatch { //cuz we are only partially updating
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	var req models.UpdateTeamStatusRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -203,12 +176,18 @@ func AdminChangeTeamStatusHandler(w http.ResponseWriter, r *http.Request) {
 	//disqualified teams should be ignored in scoreboard during ordering and push them to bottom and sort on problems only on enabled teams
 }
 
-func AdminChangeContestState(w http.ResponseWriter, r *http.Request) {
+type Handlers struct {
+	contestState    *contest.State
+	manifest        *judge.Manifest
+	submissionQueue chan int
+}
+
+func NewHandlers(cs *contest.State, manifest *judge.Manifest, submissionQueue chan int) *Handlers {
+	return &Handlers{contestState: cs, manifest: manifest, submissionQueue: submissionQueue}
+}
+
+func (h *Handlers) AdminChangeContestState(w http.ResponseWriter, r *http.Request) {
 	// should be path because its a partial update like duhhh bitch
-	if r.Method != http.MethodPatch {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	var req models.ChangeContestState
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -221,35 +200,31 @@ func AdminChangeContestState(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid contest status", http.StatusBadRequest)
 		return
 	}
-	if req.StartTime != nil {
-		models.ActiveContest.StartTime = *req.StartTime
-	}
-	if req.EndTime != nil {
-		models.ActiveContest.EndTime = *req.EndTime
-	}
-	models.ActiveContest.Status = req.Status
-	if err := db.SaveContest(models.ActiveContest); err != nil { //believe me somehow its saving to the contests table
+
+	updated := h.contestState.Apply(func(c *models.Contest) {
+		if req.StartTime != nil {
+			c.StartTime = *req.StartTime
+		}
+		if req.EndTime != nil {
+			c.EndTime = *req.EndTime
+		}
+		c.Status = req.Status
+	})
+
+	if err := db.SaveContest(&updated); err != nil { //believe me somehow its saving to the contests table
 		//cuz the active contest is a pointer in memory so saving it db takes the pointer, goes to matching row with that id
-		http.Error(w, "DB error", http.StatusInternalServerError)
+		http.Error(w, "Faield to save contest", http.StatusInternalServerError)
 		return
 	}
 	ws.BroadcastTime()
-	utils.WriteJSON(w, 200, models.ActiveContest)
+	utils.WriteJSON(w, 200, updated)
 }
 
 func AdminGetScoreboard(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	ScoreboardHandler(w, r)
 }
 
 func AdminGetOverridesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	overrides, err := db.GetAllOverrides()
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
@@ -259,10 +234,6 @@ func AdminGetOverridesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminApproveOverride(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
 	overrideID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "invalid override id", http.StatusBadRequest)
@@ -305,9 +276,5 @@ func AdminApproveOverride(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminGetContestStateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Wrong method is called", http.StatusMethodNotAllowed)
-		return
-	}
-	utils.WriteJSON(w, 200, models.ActiveContest)
+	utils.WriteJSON(w, 200, contest.Active.Current())
 }

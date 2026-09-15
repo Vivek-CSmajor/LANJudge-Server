@@ -14,10 +14,6 @@ import (
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	//3 cases
-	if r.Method != http.MethodPost {
-		http.Error(w, "Wrong method called in login Handler", http.StatusMethodNotAllowed)
-		return
-	}
 	var req models.LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

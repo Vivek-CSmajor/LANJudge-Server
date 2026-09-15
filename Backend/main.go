@@ -2,9 +2,10 @@ package main
 
 import (
 	"campuscode/api"
+	"campuscode/api/handlers"
+	"campuscode/contest"
 	"campuscode/db"
 	"campuscode/judge"
-	"campuscode/models"
 	"log"
 )
 
@@ -14,16 +15,17 @@ func main() {
 		log.Fatal("failed to initialize runtime directories: ", err)
 	}
 	db.InitDB()
-	models.ActiveContest = db.LoadOrInitContest()
+	initialContest := db.LoadOrInitContest()
+	contest.Active = contest.NewState(*initialContest)
 	manifest, err := judge.LoadManifest()
 	if err != nil {
 		log.Fatal("failed to load manifest: ", err)
 	}
-	judge.ActiveManifest = manifest
 	if err := judge.LoadOrInitProblems(manifest); err != nil {
 		log.Fatal("failed to load problems: ", err)
 	}
-	judge.InitializeQueue()
-	judge.StartWorkers(3)
-	api.Server()
+	queue := judge.InitializeQueue()
+	judge.StartWorkers(3, queue, contest.Active)
+	h := handlers.NewHandlers(contest.Active, manifest, queue)
+	api.Server(h)
 }

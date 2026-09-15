@@ -22,40 +22,40 @@ func cors(next http.Handler) http.Handler {
 	})
 }
 
-func Server() {
-	http.HandleFunc("/health", handlers.HealthHandler)
+func Server(h *handlers.Handlers) {
+	http.HandleFunc("GET /health", handlers.HealthHandler)
 
-	http.HandleFunc("/submit", handlers.RequireAuth(handlers.RequireContestOpen(handlers.SubmitHandler)))
-	http.HandleFunc("/submission/{id}", handlers.RequireAuth(handlers.GetSubmissionHandler))
-	http.HandleFunc("/submissions/me", handlers.RequireAuth(handlers.ListMySubmissionsHandler))
-	http.HandleFunc("/run", handlers.RequireAuth(handlers.RunHandler))
+	http.HandleFunc("POST /submit", handlers.RequireAuth(handlers.RequireContestOpen(h.SubmitHandler)))
+	http.HandleFunc("GET /submission/{id}", handlers.RequireAuth(handlers.GetSubmissionHandler))
+	http.HandleFunc("GET /submissions/me", handlers.RequireAuth(handlers.ListMySubmissionsHandler))
+	http.HandleFunc("POST /run", handlers.RequireAuth(handlers.RunHandler))
 
 	//auth rotues
-	http.HandleFunc("/register", handlers.RegisterHandler)
-	http.HandleFunc("/login", handlers.LoginHandler)
+	http.HandleFunc("POST /register", handlers.RegisterHandler)
+	http.HandleFunc("POST /login", handlers.LoginHandler)
 	//http.HandleFunc("/logout", handlers.LogoutHandler)
 
-	http.HandleFunc("/problems", handlers.RequireAuth(handlers.RequireContestOpen(handlers.ProblemsHandler)))
-	http.HandleFunc("/problems/{id}", handlers.RequireAuth(handlers.RequireContestOpen(handlers.ProblemHandler)))
+	http.HandleFunc("GET /problems", handlers.RequireAuth(handlers.RequireContestOpen(handlers.ProblemsHandler)))
+	http.HandleFunc("GET /problems/{id}", handlers.RequireAuth(handlers.RequireContestOpen(handlers.ProblemHandler)))
 
 	//contest handlers
-	http.HandleFunc("/contest", handlers.RequireAuth(handlers.ContestHandler))
+	http.HandleFunc("GET /contest", handlers.RequireAuth(handlers.ContestHandler))
 
 	//scoreboard
-	http.HandleFunc("/scoreboard", handlers.ScoreboardHandler)
+	http.HandleFunc("GET /scoreboard", handlers.ScoreboardHandler)
 
 	//admin
-	http.HandleFunc("/admin/login", handlers.AdminLoginHandler)
-	http.HandleFunc("/admin/submissions", handlers.RequireAdminAuth(handlers.AdminGetSubmissionsHandler))
-	http.HandleFunc("/admin/submissions/{id}", handlers.RequireAdminAuth(handlers.AdminGetSubmissionHandler))
-	http.HandleFunc("/admin/submissions/{id}/rejudge", handlers.RequireAdminAuth(handlers.AdminRejudgeSubmissionHandler))
-	http.HandleFunc("/admin/teams/{id}", handlers.RequireAdminAuth(handlers.AdminChangeTeamStatusHandler))
-	http.HandleFunc("/admin/teams", handlers.RequireAdminAuth(handlers.AdminGetTeamsHandler))
-	http.HandleFunc("/admin/scoreboard", handlers.RequireAdminAuth(handlers.AdminGetScoreboard))
-	http.HandleFunc("/admin/overrides", handlers.RequireAdminAuth(handlers.AdminGetOverridesHandler))
-	http.HandleFunc("/admin/overrides/{id}", handlers.RequireAdminAuth(handlers.AdminApproveOverride))
-	http.HandleFunc("GET /admin/contest", handlers.RequireAdminAuth(handlers.AdminGetContestStateHandler)) //u can write method scoped routes as well so they can have same
-	http.HandleFunc("PATCH /admin/contest", handlers.RequireAdminAuth(handlers.AdminChangeContestState))   // path url with diff handlers/funcs
+	http.HandleFunc("POST /admin/login", h.AdminLoginHandler)
+	http.HandleFunc("GET /admin/submissions", handlers.RequireAdminAuth(handlers.AdminGetSubmissionsHandler))
+	http.HandleFunc("GET /admin/submissions/{id}", handlers.RequireAdminAuth(handlers.AdminGetSubmissionHandler))
+	http.HandleFunc("POST /admin/submissions/{id}/rejudge", handlers.RequireAdminAuth(h.AdminRejudgeSubmissionHandler))
+	http.HandleFunc("PATCH /admin/teams/{id}", handlers.RequireAdminAuth(handlers.AdminChangeTeamStatusHandler))
+	http.HandleFunc("GET /admin/teams", handlers.RequireAdminAuth(handlers.AdminGetTeamsHandler))
+	http.HandleFunc("GET /admin/scoreboard", handlers.RequireAdminAuth(handlers.AdminGetScoreboard))
+	http.HandleFunc("GET /admin/overrides", handlers.RequireAdminAuth(handlers.AdminGetOverridesHandler))
+	http.HandleFunc("POST /admin/overrides/{id}", handlers.RequireAdminAuth(handlers.AdminApproveOverride))
+	http.HandleFunc("GET /admin/contest", handlers.RequireAdminAuth(handlers.AdminGetContestStateHandler))
+	http.HandleFunc("PATCH /admin/contest", handlers.RequireAdminAuth(h.AdminChangeContestState))
 
 	ws.StartTimeSyncTicker()
 

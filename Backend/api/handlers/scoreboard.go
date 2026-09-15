@@ -20,11 +20,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func ScoreboardHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "invalid method is called for scoreboard", http.StatusMethodNotAllowed)
-		return
-	}
-
 	//a fall back to allow plain http fetches instead of a ws always
 	if !websocket.IsWebSocketUpgrade(r) {
 		scoreboard, err := db.GetScoreboard()

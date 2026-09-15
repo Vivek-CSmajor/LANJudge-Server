@@ -50,8 +50,6 @@ func TestsDir(id int) string { //asdasdasd
 	return path
 }
 
-var ActiveManifest *Manifest
-
 func LoadManifest() (*Manifest, error) {
 	mnf, err := os.ReadFile(filepath.Join(contestPath, "manifest.json"))
 	if err != nil {

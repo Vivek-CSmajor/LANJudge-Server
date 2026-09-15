@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"campuscode/contest"
 	"campuscode/db"
 	"campuscode/models"
 	"context"
@@ -54,14 +55,8 @@ func TeamFromContext(r *http.Request) models.Teams {
 
 func RequireContestOpen(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		contest := models.ActiveContest
-		if contest == nil || contest.Status != models.ContestActive {
-			http.Error(w, "contest is not active", http.StatusForbidden)
-			return
-		}
-		now := time.Now()
-		if now.Before(contest.StartTime) || now.After(contest.EndTime) {
-			http.Error(w, "contest is not currently open", http.StatusForbidden)
+		if !contest.Active.IsOpen(time.Now()) {
+			http.Error(w, "contest is currently not open", http.StatusForbidden)
 			return
 		}
 		next(w, r)

@@ -16,7 +16,9 @@ func InitDB() {
 		panic(err)
 	}
 	log.Println("DB connection established")
-	db.AutoMigrate(&models.Submission{}, &models.Teams{}, &models.Sessions{}, &models.DeviceOverride{}, &models.Contest{}, &models.TeamProblemStats{}, &models.ScoreBoard{}, &models.Problem{})
+	if err := db.AutoMigrate(&models.Submission{}, &models.Teams{}, &models.Sessions{}, &models.DeviceOverride{}, &models.Contest{}, &models.TeamProblemStats{}, &models.ScoreBoard{}, &models.Problem{}); err != nil {
+		panic(err)
+	}
 
 	conn = db
 }

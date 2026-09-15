@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"campuscode/contest"
 	"campuscode/db"
 	"campuscode/models"
 	"campuscode/utils"
@@ -11,10 +12,6 @@ import (
 )
 
 func ProblemsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid method called", http.StatusMethodNotAllowed)
-		return
-	}
 	problems, err := db.GetAllProblems()
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
@@ -23,18 +20,10 @@ func ProblemsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ContestHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid method called", http.StatusMethodNotAllowed)
-		return
-	}
-	utils.WriteJSON(w, 200, models.ActiveContest)
+	utils.WriteJSON(w, 200, contest.Active.Current())
 }
 
 func ProblemHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid method called", http.StatusMethodNotAllowed)
-		return
-	}
 	id := r.PathValue("id")
 	strconv.Atoi(id)
 

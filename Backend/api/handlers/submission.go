@@ -11,12 +11,7 @@ import (
 	"path/filepath"
 )
 
-func SubmitHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost { //enforces post only for submission
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *Handlers) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.SubmitRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -45,11 +40,11 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// push to queue
-	if judge.SubmissionQueue == nil { //exists but aint containing nuthin
+	if h.submissionQueue == nil { //exists but aint containing nuthin
 		http.Error(w, "queue not initialized", 500)
 		return
 	}
-	judge.SubmissionQueue <- submissionID
+	h.submissionQueue <- submissionID
 
 	utils.WriteJSON(w, 200, models.SubmitResponse{
 		SubmissionID: submissionID,
@@ -66,10 +61,6 @@ type SubmissionDetail struct {
 }
 
 func GetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	//id := strings.TrimPrefix(r.URL.Path,"/submissions/")
 	id := r.PathValue("id")
 	submission, err := db.GetSubmissionByRawID(id)
@@ -94,10 +85,6 @@ func GetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListMySubmissionsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	team := TeamFromContext(r)
 
 	submissions, err := db.GetSubmissionsForTeam(team.ID, r.URL.Query().Get("problem_id"))
