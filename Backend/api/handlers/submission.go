@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"campuscode/db"
-	"campuscode/judge"
 	"campuscode/models"
+	"campuscode/service"
 	"campuscode/utils"
 	"encoding/json"
+	"errors"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 func (h *Handlers) SubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,68 +19,31 @@ func (h *Handlers) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	team := TeamFromContext(r)
 	req.TeamID = team.ID
-	submissionID, err := db.SaveSubmissionToDB(req) // Implement this function to save to DB and return ID
+	submissionID , err := h.submissions.Submit(req)
 	if err != nil {
-		http.Error(w, "db save errro", http.StatusInternalServerError)
-		return
+		http.Error(w,err.Error(),http.StatusInternalServerError)
+		return 
 	}
-	//store code in fs
-	submissionDir := judge.SubmissionPathByID(submissionID)
-	err = os.MkdirAll(submissionDir, 0755)
-	if err != nil {
-		http.Error(w, "Failed to create submission directory", http.StatusInternalServerError)
-		return
-	}
-	spec := judge.LanguageSpecs[req.Language]
-	submissionPath := submissionDir + "/" + spec.SourceFile
-	err = os.WriteFile(submissionPath, []byte(req.Code), 0644)
-	if err != nil {
-		http.Error(w, "Failed to save submission code", http.StatusInternalServerError)
-		return
-	}
-	// push to queue
-	if h.submissionQueue == nil { //exists but aint containing nuthin
-		http.Error(w, "queue not initialized", 500)
-		return
-	}
-	h.submissionQueue <- submissionID
-
 	utils.WriteJSON(w, 200, models.SubmitResponse{
 		SubmissionID: submissionID,
 		Status:       "Queued",
 	})
 }
 
-// SubmissionDetail embeds models.Submission so its fields (id, team_id,
-// problem_id, language, status, verdict, submitted_at) serialize at the same
-// level as Code — the frontend sees one flat object, not a nested one.
-type SubmissionDetail struct {
-	models.Submission
-	Code string `json:"code"`
-}
 
-func GetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
-	//id := strings.TrimPrefix(r.URL.Path,"/submissions/")
+func (h *Handlers)GetSubmissionHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	submission, err := db.GetSubmissionByRawID(id)
-	if err != nil {
-		http.Error(w, "Submission Not found", http.StatusNotFound)
-		return
-	}
 	team := TeamFromContext(r)
-	if submission.TeamID != team.ID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-	code := ""
-	if spec, ok := judge.LanguageSpecs[submission.Language]; ok {
-		codePath := filepath.Join(judge.SubmissionPathByID(submission.ID), spec.SourceFile)
-		if b, err := os.ReadFile(codePath); err == nil {
-			code = string(b)
+	detail, err := h.submissions.GetDetail(id,team.ID)
+	if err != nil {
+		switch{
+		case errors.Is(err,service.ErrNotFound) : http.Error(w,"Submission Not Found",http.StatusNotFound)
+		case errors.Is(err,service.ErrForbidden) : http.Error(w,"Forbidden",http.StatusForbidden)
+		default : http.Error(w,"Internal Error",http.StatusInternalServerError)
 		}
+		return 
 	}
-
-	utils.WriteJSON(w, 200, SubmissionDetail{Submission: submission, Code: code})
+	utils.WriteJSON(w, 200, detail)
 }
 
 func ListMySubmissionsHandler(w http.ResponseWriter, r *http.Request) {

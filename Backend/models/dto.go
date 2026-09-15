@@ -60,3 +60,9 @@ type RunResponse struct {
 	Output string `json:"output"`
 	Error  string `json:"error"`
 }
+
+
+type SubmissionDetail struct {
+	Submission
+	Code string `json:"code"`
+}

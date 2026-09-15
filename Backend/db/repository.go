@@ -23,6 +23,7 @@ func GetByID[T any](id int) (T, error) {
 	return row, nil
 }
 
+
 func GetAll[T any](order string) ([]T, error) {
 	var rows []T
 	if err := conn.Order(order).Find(&rows).Error; err != nil {
@@ -71,6 +72,10 @@ func SaveSubmissionToDB(sub models.SubmitRequest) (int, error) { // saves submis
 		return 0, err
 	}
 	return submission.ID, nil
+}
+
+func GetTeamByID(id int)(models.Teams,error){
+	return GetByID[models.Teams](id)
 }
 
 func GetSubmissionByID(subID int) (models.Submission, error) {

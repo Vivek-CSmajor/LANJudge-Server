@@ -6,6 +6,7 @@ import (
 	"campuscode/db"
 	"campuscode/judge"
 	"campuscode/models"
+	"campuscode/service"
 	"campuscode/utils"
 	"encoding/json"
 	"log"
@@ -180,6 +181,7 @@ type Handlers struct {
 	contestState    *contest.State
 	manifest        *judge.Manifest
 	submissionQueue chan int
+	submissions *service.SubmissionService
 }
 
 func NewHandlers(cs *contest.State, manifest *judge.Manifest, submissionQueue chan int) *Handlers {
