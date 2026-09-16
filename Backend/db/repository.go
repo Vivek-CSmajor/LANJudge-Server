@@ -241,7 +241,7 @@ func UpdateTeamProblemStatsAndScoreboard(sub models.Submission, startTime time.T
 		stats.Solved = true
 		stats.FirstAcTime = &sub.SubmittedAt //bit of confusion, if a value is *int u must send it address of the value u wanna assign it not the value.
 		minutesFromStart := int(sub.SubmittedAt.Sub(startTime).Minutes())
-		penalty := minutesFromStart + (20 * stats.WrongAttemptCount)
+		penalty := models.Penalty(minutesFromStart, stats.WrongAttemptCount)
 		stats.Penalty = &penalty
 		team.TotalSolved++
 		team.TotalPenalty += penalty

@@ -38,7 +38,7 @@ func (s *AuthService) Login(req models.LoginRequest, deviceID string) (string, e
 	//Case2 : Login again but with diff device
 	if *team.BoundDeviceID != deviceID {
 		//call override
-		if err := db.CreateDeviceOverride(models.DeviceOverride{TeamID: team.ID, NewDeviceID: deviceID, Status: "pending", CreatedAt: time.Now()}); err != nil {
+		if err := db.CreateDeviceOverride(models.DeviceOverride{TeamID: team.ID, NewDeviceID: deviceID, Status: models.OverridePending, CreatedAt: time.Now()}); err != nil {
 			return "", fmt.Errorf("failed to request override : %w", err)
 		}
 		return "", ErrDeviceMismatch

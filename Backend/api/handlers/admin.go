@@ -212,6 +212,8 @@ func (h *Handlers) AdminApproveOverride(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, "Override not found", http.StatusNotFound)
 		case errors.Is(err, service.ErrAlreadyResolved):
 			http.Error(w, "Override already resolved", http.StatusConflict)
+		case errors.Is(err, service.ErrInvalidInput):
+			http.Error(w, "invalid action", http.StatusBadRequest)
 		default:
 			http.Error(w, "DB error", http.StatusInternalServerError)
 		}

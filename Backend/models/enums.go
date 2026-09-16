@@ -38,9 +38,7 @@ func (t Teams) CanSubmit() (bool, string) {
 	return true, ""
 }
 
-// IsDisqualified reports whether a team has been permanently disqualified —
-// narrower than CanAuthenticate, for places where a merely-disabled team
-// should still be let through (e.g. logging in).
+
 func (t Teams) IsDisqualified() bool {
 	return t.Status != nil && *t.Status == TeamDisqualified
 }
@@ -53,3 +51,23 @@ const (
 	ContestPaused  ContestStatus = "paused"
 	ContestEnded   ContestStatus = "ended"
 )
+
+const (
+	OverridePending  = "pending"
+	OverrideApproved = "approved"
+	OverrideRejected = "rejected"
+)
+
+func (o DeviceOverride) IsPending() bool {
+	return o.Status == OverridePending
+}
+
+func ResolveOverrideAction(action string) (status string, ok bool) {
+	switch action {
+	case "approve":
+		return OverrideApproved, true
+	case "reject":
+		return OverrideRejected, true
+	}
+	return "", false
+}

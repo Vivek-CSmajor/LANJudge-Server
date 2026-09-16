@@ -20,19 +20,21 @@ func (s *OverrideService) Approve(id int, action string) (models.DeviceOverride,
 	if err != nil {
 		return models.DeviceOverride{}, ErrNotFound
 	}
-	if overrideRecord.Status != "pending" {
+	if !overrideRecord.IsPending() {
 		return models.DeviceOverride{}, ErrAlreadyResolved
 	}
-	if action == "approve" {
-		overrideRecord.Status = "approved"
+	status, ok := models.ResolveOverrideAction(action)
+	if !ok {
+		return models.DeviceOverride{}, ErrInvalidInput
+	}
+	overrideRecord.Status = status
+	if status == models.OverrideApproved {
 		if err := db.UpdateTeamBoundDevice(overrideRecord.TeamID, overrideRecord.NewDeviceID); err != nil {
 			return models.DeviceOverride{}, err
 		}
 		if err := db.DeactivateTeamSessions(overrideRecord.TeamID); err != nil {
 			return models.DeviceOverride{}, err
 		}
-	} else if action == "reject" {
-		overrideRecord.Status = "rejected"
 	}
 	if err := db.UpdateOverrideStatus(id, overrideRecord.Status); err != nil {
 		return models.DeviceOverride{}, err
