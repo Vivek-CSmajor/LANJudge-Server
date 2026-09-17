@@ -44,7 +44,7 @@ func RunAdHoc(language, code, input string) (output string, errMsg string) {
 		return "", "Internal error writing input file"
 	}
 
-	stdout, stderr, err := runDocker(0, workspaceDir, spec.RunCmd+"< /workspace/input.txt", 10*time.Second, spec)
+	stdout, stderr, err := runDocker(0, workspaceDir, spec.RunCmd+"< /workspace/input.txt", 10*time.Second, 256, spec)
 	if err != nil {
 		if stderr == "TLE" {
 			return "", "Time limit exceeded"

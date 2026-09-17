@@ -69,6 +69,12 @@ func processSubmission(sub models.Submission) (string, error) {
 }
 
 func runAllTestCases(sub models.Submission, workspaceDir string, spec LanguageSpec) (string, error) {
+	meta, err := LoadProblemMeta(sub.ProblemID)
+	if err != nil {
+		return string(models.InternalError), fmt.Errorf("failed to load constraints for problem %d: %w", sub.ProblemID, err)
+	}
+	timeout := time.Duration(meta.TimeLimitMS) * time.Millisecond
+
 	testsDir := TestsDir(sub.ProblemID)
 	testFiles, err := utils.ListInputFiles(testsDir)
 	if err != nil {
@@ -82,7 +88,7 @@ func runAllTestCases(sub models.Submission, workspaceDir string, spec LanguageSp
 		testNum := strings.TrimSuffix(testName, ".in")
 		testInputPath := file
 		testOutputPath := filepath.Join(testsDir, testNum+".out")
-		result, err := runTestCase(sub.ID, testInputPath, testOutputPath, workspaceDir, spec)
+		result, err := runTestCase(sub.ID, testInputPath, testOutputPath, workspaceDir, spec, timeout, meta.MemoryLimitMB)
 		//if any test fails return WA immediately
 		if err != nil {
 			return result, fmt.Errorf("failed to run test case %s: %v", testNum, err)
@@ -138,7 +144,7 @@ func compile(workspaceDir string, subID int, spec LanguageSpec) error { //in doc
 	return nil
 }
 
-func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath string, workspacePath string, spec LanguageSpec) (string, error) {
+func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath string, workspacePath string, spec LanguageSpec, timeout time.Duration, memoryMB int) (string, error) {
 	inputCopyToPath := filepath.Join(workspacePath, "input.txt")
 	inputBytes, err := os.ReadFile(testInputPath)
 	if err != nil {
@@ -149,7 +155,7 @@ func runTestCase(submissionID int, testInputPath string, testExpectedOutputPath 
 		return string(models.InternalError), fmt.Errorf("failed to prepare test input: %w", err)
 	}
 
-	stdout, stderr, err := runDocker(submissionID, workspacePath, spec.RunCmd+"< /workspace/input.txt", 10*time.Second, spec)
+	stdout, stderr, err := runDocker(submissionID, workspacePath, spec.RunCmd+"< /workspace/input.txt", timeout, memoryMB, spec)
 	if err != nil {
 		if stderr == "TLE" {
 			return string(models.TimeLimitExceeded), nil

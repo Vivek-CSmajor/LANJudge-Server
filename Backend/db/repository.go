@@ -3,6 +3,7 @@ package db
 import (
 	"campuscode/models"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -213,8 +214,10 @@ func LoadOrInitContest() *models.Contest {
 	}
 	return &contest
 }
-
+var scoreboardMU sync.Mutex
 func UpdateTeamProblemStatsAndScoreboard(sub models.Submission, startTime time.Time) {
+	scoreboardMU.Lock()
+	defer scoreboardMU.Unlock()
 	var stats models.TeamProblemStats
 	conn.FirstOrCreate(&stats, models.TeamProblemStats{
 		TeamID:            sub.TeamID,

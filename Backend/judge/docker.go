@@ -3,14 +3,15 @@ package judge
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 
 	"time"
 )
 
-func runDocker(submissionID int, workspacePath string, command string, timeoout time.Duration, spec LanguageSpec) (string, string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeoout) //here timeout is passed into it from the problems Time limit
+func runDocker(submissionID int, workspacePath string, command string, timeout time.Duration, memoryMB int, spec LanguageSpec) (string, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout) //here timeout is passed into it from the problems Time limit
 	defer cancel()
 	absWorkspacePath, err := filepath.Abs(workspacePath)
 	if err != nil {
@@ -19,7 +20,7 @@ func runDocker(submissionID int, workspacePath string, command string, timeoout 
 	cmd := exec.CommandContext(
 		ctx,
 		"docker", "run", "--rm",
-		"--memory=256m",
+		fmt.Sprintf("--memory=%dm", memoryMB),
 		"--cpus=0.5",
 		"--network=none",
 		"--pids-limit=64",

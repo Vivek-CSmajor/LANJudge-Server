@@ -50,6 +50,22 @@ func TestsDir(id int) string { //asdasdasd
 	return path
 }
 
+func ProblemMetaPath(id int) string {
+	return filepath.Join(contestPath, "problems", strconv.Itoa(id), "meta.json")
+}
+
+func LoadProblemMeta(id int) (ProblemMeta, error) {
+	data, err := os.ReadFile(ProblemMetaPath(id))
+	if err != nil {
+		return ProblemMeta{}, err
+	}
+	var meta ProblemMeta
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return ProblemMeta{}, err
+	}
+	return meta, nil
+}
+
 func LoadManifest() (*Manifest, error) {
 	mnf, err := os.ReadFile(filepath.Join(contestPath, "manifest.json"))
 	if err != nil {
@@ -78,11 +94,6 @@ type Problem struct {
 	Title string `json:"title"`
 }
 
-// LoadOrInitProblems syncs the problems table from the contest package on disk —
-// manifest.json for the id/title list, each problem's meta.json for limits —
-// same "create if missing, leave existing rows alone" pattern as LoadOrInitContest.
-// Without this, a fresh/reset DB has an empty problems table and nothing on disk
-// ever gets loaded into it, since AutoMigrate only creates the schema.
 func LoadOrInitProblems(manifest *Manifest) error {
 	for _, p := range manifest.Problems {
 		id, err := strconv.Atoi(p.ID)
@@ -94,16 +105,11 @@ func LoadOrInitProblems(manifest *Manifest) error {
 			return fmt.Errorf("failed to check problem %d: %w", id, err)
 		}
 		if exists {
-			continue // already in DB, don't overwrite a possibly-live row
+			continue
 		}
-		metaPath := filepath.Join(contestPath, "problems", p.ID, "meta.json")
-		metaBytes, err := os.ReadFile(metaPath)
+		meta, err := LoadProblemMeta(id)
 		if err != nil {
-			return fmt.Errorf("failed to read meta.json for problem %s: %w", p.ID, err)
-		}
-		var meta ProblemMeta
-		if err := json.Unmarshal(metaBytes, &meta); err != nil {
-			return fmt.Errorf("failed to parse meta.json for problem %s: %w", p.ID, err)
+			return fmt.Errorf("failed to load meta.json for problem %s: %w", p.ID, err)
 		}
 
 		problem := models.Problem{
