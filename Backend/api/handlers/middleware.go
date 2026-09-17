@@ -72,15 +72,12 @@ func RequireAdminAuth(next http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "missing", http.StatusUnauthorized)
 			return
 		}
-		session, err := db.GetActiveAdminSessionByToken(token)
+		_, err := db.GetActiveAdminSessionByToken(token)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		//add team into the context so handlers can use it
-		team, _ := db.GetByID[models.Teams](session.TeamID)
-		ctx := context.WithValue(r.Context(), teamContextKey, team)
 		//if good call next
-		next(w, r.WithContext(ctx))
+		next(w, r)
 	}
 }
