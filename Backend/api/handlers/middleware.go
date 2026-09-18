@@ -69,7 +69,10 @@ func RequireAdminAuth(next http.HandlerFunc) http.HandlerFunc {
 		token := r.Header.Get("Authorization")
 		token = strings.TrimPrefix(token, "Bearer ")
 		if token == "" {
-			http.Error(w, "missing", http.StatusUnauthorized)
+			token = "Bearer " + r.URL.Query().Get("token")
+			if token == ""{
+				http.Error(w,"Unauthorized",http.StatusUnauthorized)
+			}
 			return
 		}
 		_, err := db.GetActiveAdminSessionByToken(token)

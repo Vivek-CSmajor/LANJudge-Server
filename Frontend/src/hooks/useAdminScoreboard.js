@@ -8,7 +8,11 @@ export function useAdminScoreboard() {
   const [connected, setConnected] = useState(false)
 
   useEffect(() => {
-    const ws = new WebSocket(`${SERVER_WS}/admin/scoreboard`)
+    // A native WebSocket can't set an Authorization header, so this is now
+    // gated by RequireAdminAuth's query-param fallback (?token=) instead —
+    // the only way a browser can actually hand it credentials.
+    const token = localStorage.getItem('session_token') ?? ''
+    const ws = new WebSocket(`${SERVER_WS}/admin/scoreboard?token=${encodeURIComponent(token)}`)
 
     ws.onopen = () => setConnected(true)
     ws.onclose = () => setConnected(false)

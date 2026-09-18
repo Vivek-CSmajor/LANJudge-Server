@@ -32,8 +32,17 @@ func workerLoop(workerID int, queue chan int, contestState *contest.State) {
 		result, err := processSubmission(sub)
 		if err != nil {
 			log.Printf("Error processing submission %d: %v", submissionID, err)
-			if e := db.UpdateSubmissionVerdict(submissionID, models.RuntimeError); e != nil {
-				log.Printf("failed to record runtime error verdict: %v", e)
+
+			verdict := models.SubmissionVerdict(result)
+			if verdict == "" {
+				verdict = models.InternalError  // fallback if result is empty
+			}
+
+			if e := db.UpdateSubmissionVerdict(submissionID, verdict); e != nil {
+				log.Printf("failed to record verdict: %v", e)
+			}
+			if e := db.UpdateSubmissionStatus(submissionID, models.SubmissionDone); e != nil {
+				log.Printf("failed to mark submission done: %v", e)
 			}
 			continue
 		}

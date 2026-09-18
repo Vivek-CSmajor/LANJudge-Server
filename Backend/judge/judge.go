@@ -56,10 +56,12 @@ func processSubmission(sub models.Submission) (string, error) {
 		return string(models.InternalError), fmt.Errorf("failed to copy submission file: %v", err)
 	}
 	// compile and update db with result (if errors skip execution n display errors else continue)
-	err = compile(workspaceDir, sub.ID, spec)
-	if err != nil {
-		log.Printf("Compilation error for submission %d is : %v", sub.ID, err)
-		return string(models.CompilationError), fmt.Errorf("compilation error : %w ", err)
+	if spec.CompileCmd != "" {
+		err = compile(workspaceDir, sub.ID, spec)
+		if err != nil {
+			log.Printf("Compilation error for submission %d is : %v", sub.ID, err)
+			return string(models.CompilationError), fmt.Errorf("compilation error : %w ", err)
+		}
 	}
 	result, err := runAllTestCases(sub, workspaceDir, spec)
 	if err != nil {
@@ -104,8 +106,6 @@ func runAllTestCases(sub models.Submission, workspaceDir string, spec LanguageSp
 
 func compile(workspaceDir string, subID int, spec LanguageSpec) error { //in docker
 	submissionDir := SubmissionPathByID(subID)
-	// sourcePath := filepath.Join(submissionDir,"code.cpp")
-	// outputBinary := filepath.Join(submissionDir, "program")
 	compileLogPath := filepath.Join(submissionDir, "compile.log")
 	absWorkspaceDir, err := filepath.Abs(workspaceDir) //is unamibguous regardless of pwd, it always points to exactly one location not mattter who or where its run from.
 	//its needed cuz docker daemon is a sperate process inside a vm and it doesnt share the pwd of the go server.

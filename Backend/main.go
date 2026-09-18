@@ -7,7 +7,18 @@ import (
 	"campuscode/db"
 	"campuscode/judge"
 	"log"
+	"os"
+	"strconv"
 )
+
+func judgeWorkerCount() int {
+	if raw := os.Getenv("JUDGE_WORKERS"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 8
+}
 
 func main() {
 	//Simulated submission
@@ -25,7 +36,7 @@ func main() {
 		log.Fatal("failed to load problems: ", err)
 	}
 	queue := judge.InitializeQueue()
-	judge.StartWorkers(3, queue, contest.Active)
+	judge.StartWorkers(judgeWorkerCount(), queue, contest.Active)
 	runSemaphore := make(chan struct{}, 3)
 	h := handlers.NewHandlers(contest.Active, manifest, queue, runSemaphore)
 	api.Server(h)
