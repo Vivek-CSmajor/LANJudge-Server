@@ -28,10 +28,10 @@ func Server(h *handlers.Handlers) {
 	http.HandleFunc("POST /submit", handlers.RequireAuth(handlers.RequireContestOpen(h.SubmitHandler)))
 	http.HandleFunc("GET /submission/{id}", handlers.RequireAuth(h.GetSubmissionHandler))
 	http.HandleFunc("GET /submissions/me", handlers.RequireAuth(h.ListMySubmissionsHandler))
-	http.HandleFunc("POST /run", handlers.RequireAuth(h.RunHandler))
+	http.HandleFunc("POST /run", handlers.RequireAuth(handlers.RequireContestOpen(h.RunHandler)))
 
 	//auth rotues
-	http.HandleFunc("POST /register", h.RegisterHandler)
+	http.HandleFunc("POST /register", handlers.RequireAdminAuth(h.RegisterHandler))
 	http.HandleFunc("POST /login", h.LoginHandler)
 	//http.HandleFunc("/logout", handlers.LogoutHandler)
 
