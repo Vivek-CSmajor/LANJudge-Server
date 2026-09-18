@@ -57,6 +57,9 @@ func Server(h *handlers.Handlers) {
 	http.HandleFunc("GET /admin/contest", handlers.RequireAdminAuth(h.AdminGetContestStateHandler))
 	http.HandleFunc("PATCH /admin/contest", handlers.RequireAdminAuth(h.AdminChangeContestState))
 
+	//admin dashboard (embedded static files) — fallback, only catches what nothing above matched
+	http.Handle("/", frontendHandler())
+
 	ws.StartTimeSyncTicker()
 
 	log.Println("Server listening on :8080")

@@ -8,4 +8,8 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  build: {
+    outDir: '../Backend/api/web/dist',
+    emptyOutDir: true,
+  },
 })

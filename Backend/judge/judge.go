@@ -24,7 +24,7 @@ type LanguageSpec struct {
 var LanguageSpecs = map[string]LanguageSpec{
 	"cpp": {
 		SourceFile: "code.cpp",
-		Image:      "gcc:latest",
+		Image:      "gcc:14",
 		CompileCmd: "g++ code.cpp -O2 -std=c++17 -o program",
 		RunCmd:     "./program",
 	},

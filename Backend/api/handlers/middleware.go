@@ -69,10 +69,12 @@ func RequireAdminAuth(next http.HandlerFunc) http.HandlerFunc {
 		token := r.Header.Get("Authorization")
 		token = strings.TrimPrefix(token, "Bearer ")
 		if token == "" {
-			token = "Bearer " + r.URL.Query().Get("token")
-			if token == ""{
-				http.Error(w,"Unauthorized",http.StatusUnauthorized)
-			}
+			// browser WebSocket handshakes can't set a custom header, so the
+			// admin scoreboard connection sends the token as a query param instead
+			token = r.URL.Query().Get("token")
+		}
+		if token == "" {
+			http.Error(w, "missing", http.StatusUnauthorized)
 			return
 		}
 		_, err := db.GetActiveAdminSessionByToken(token)

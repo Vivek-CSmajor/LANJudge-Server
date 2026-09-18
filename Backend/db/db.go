@@ -3,8 +3,8 @@ package db
 import (
 	"campuscode/models"
 	"log"
-	//"github.com/mattn/go-sqlite3"
-	"gorm.io/driver/sqlite"
+
+	"github.com/glebarez/sqlite" // pure-Go SQLite driver — no CGO, so the binary cross-compiles cleanly for every platform
 	"gorm.io/gorm"
 )
 
