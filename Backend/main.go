@@ -6,6 +6,7 @@ import (
 	"campuscode/contest"
 	"campuscode/db"
 	"campuscode/judge"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -21,6 +22,14 @@ func judgeWorkerCount() int {
 }
 
 func main() {
+	if err := chdirToExecutableDir(); err != nil {
+		log.Fatal("failed to determine the server's own directory: ", err)
+	}
+	if err := ensureContestData(); err != nil {
+		fmt.Fprintln(os.Stderr, "\n"+err.Error()+"\n")
+		os.Exit(1)
+	}
+
 	//Simulated submission
 	if err := judge.InitializeRunTime(); err != nil {
 		log.Fatal("failed to initialize runtime directories: ", err)
@@ -39,5 +48,10 @@ func main() {
 	judge.StartWorkers(judgeWorkerCount(), queue, contest.Active)
 	runSemaphore := make(chan struct{}, 3)
 	h := handlers.NewHandlers(contest.Active, manifest, queue, runSemaphore)
+
+	const dashboardURL = "http://localhost:8080/"
+	log.Println("Admin dashboard will be available at:", dashboardURL)
+	go openDashboardWhenReady(dashboardURL)
+
 	api.Server(h)
 }
