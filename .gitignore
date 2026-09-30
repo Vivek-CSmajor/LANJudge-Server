@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+
+# Backend runtime data — DB, submitted code, judge workspaces. Generated at
+# runtime, not source. (Problem definitions in server_data/contest/ are real
+# authored content and stay tracked.)
+Backend/server_data
+
+
+# Go build artifacts
+Backend/*.exe
+Backend/*.test
+
+# Node (Frontend admin dashboard)
+node_modules/
+dist/
+release/
+
+# Env
+.env
+.env.local
+
+

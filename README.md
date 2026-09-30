@@ -1,438 +1,240 @@
-# Campus Secure Coding Assessment Platform
+# CampusCode Server
 
-### Master Product Reference Document
+**The offline judge, API and admin dashboard that run a coding contest from a single organiser laptop.**
 
----
+CampusCode Server is the on-site half of CampusCode: a LAN-based coding contest platform for universities, placement drives and lab exams. It ships as **one Go binary** with the admin dashboard embedded in it. Once it has a contest package, it needs **no internet** to register teams, serve problems, judge code in Docker sandboxes, keep a live scoreboard, and let the organiser control the contest.
 
-> **Positioning:** Offline-capable, LAN-based secure coding contest and assessment infrastructure for universities and campus placements.
-> 
-> This is **not** a Codeforces replacement. **Not** an enterprise proctoring system. It is a controlled, plug-and-play campus deployment system built for simplicity, reliability, and offline operation.
+It is not a Codeforces clone or an online judge, and it isn't a proctoring suite. It is a plug-and-play contest host for a room full of students on one network.
 
----
+**You don't download or build this repo to run a contest.** Organisers get the ready-to-run server, already bundled with their contest, from the hosted CampusCode Cloud app:
 
-## Table of Contents
-
-1. [What This Product Is](#1-what-this-product-is)
-2. [Target Users](#2-target-users)
-3. [System Architecture](#3-system-architecture)
-4. [Core Components](#4-core-components)
-5. [Judge Subsystem](#5-judge-subsystem)
-6. [Deployment Flow](#6-deployment-flow)
-7. [MVP Scope](#7-mvp-scope)
-8. [MVP+ Differentiators](#8-mvp-differentiators)
-9. [Performance Targets](#9-performance-targets)
-10. [Security Model](#10-security-model)
-11. [Known Technical Risks](#11-known-technical-risks)
-12. [Technology Stack](#12-technology-stack)
-13. [Long-Term Vision](#13-long-term-vision)
-14. [Competitive Advantage](#14-competitive-advantage)
+**<http://65.0.183.82:8081>**
 
 ---
 
-## 1. What This Product Is
+## The CampusCode project
 
-A **hybrid cloud + LAN-based secure coding contest and assessment platform** designed for universities and campus placement drives.
+CampusCode is three repositories that work in sequence:
 
-It allows institutions to conduct the following **entirely without internet access** during the contest:
-
-- Competitive programming contests
-- Placement / recruitment coding rounds
-- Internal lab exams and evaluations
-- Hackathon coding assessments
-
-The system bundles four things into one unified ecosystem:
-
-|Component|Role|
-|---|---|
-|Local judging engine|Codeforces-style automated evaluation|
-|LAN contest server|Hosts everything locally on organizer's machine|
-|Participant client|Lightweight kiosk-mode app (like Safe Exam Browser)|
-|Admin monitoring dashboard|Real-time oversight of all participants|
-
-**Core differentiator:** Offline capability + integrated monitoring + one-click deployment.
-
----
-
-## 2. Target Users
-
-|User|Use Case|
-|---|---|
-|Tier-2 / Tier-3 universities|Internal exams, lab assessments|
-|Placement cells|Coding rounds during campus recruitment|
-|Department faculty|Controlled programming evaluations|
-|Hackathon organizers|On-site coding evaluation|
-|Campus recruitment drives|Pre-placement technical screening|
-
----
-
-## 3. System Architecture
-
-The system operates in two layers that work in sequence — cloud before the contest, local during the contest.
-
-### Layer A — Control Plane (Cloud)
-
-Used exclusively **before** the contest. No judging happens here.
-
-Responsibilities:
-
-- Admin login and account management
-- Contest creation and configuration
-- Problem and testcase uploads
-- Scoring rule configuration
-- License management
-- Generating a downloadable contest package
-
-### Layer B — Data Plane (Local LAN Server)
-
-Runs **entirely on the organizer's laptop** during the contest. No internet required.
-
-Responsibilities:
-
-- Host the contest and serve the UI over LAN
-- Accept and judge all submissions
-- Run the live scoreboard
-- Monitor participant activity
-- Store all submissions and results
-- Handle screenshot and heartbeat data from clients
-
-### Architecture Diagram
-
-```
-         ┌──────────────────────────┐
-         │        YOUR CLOUD        │
-         │   Contest Creation UI    │
-         └────────────┬─────────────┘
-                      │
-               Download Package
-                      │
-                      ▼
-      ┌───────────────────────────────┐
-      │      ADMIN LAPTOP SERVER      │
-      │  ┌─────────────────────────┐  │
-      │  │ API Server              │  │
-      │  │ Judge Worker            │  │
-      │  │ Submission Queue        │  │
-      │  │ Database                │  │
-      │  │ Scoreboard Engine       │  │
-      │  │ Monitoring Service      │  │
-      │  └─────────────────────────┘  │
-      └──────────────┬────────────────┘
-                     │  LAN
-       ┌─────────────┼─────────────┐
-       │             │             │
-  Participant    Participant   Participant
-  App (Win/Mac)  App (Win/Mac) App (Win/Mac)
-```
-
----
-
-## 4. Core Components
-
-### 4.1 Organizer App (Local Server)
-
-Distributed as a **single executable**. The organizer launches it and the entire local server stack spins up automatically.
-
-Handles:
-
-- Starting the local API server
-- Initializing the database
-- Starting judge workers
-- Serving the contest UI over LAN
-- Accepting and queuing submissions
-- Updating the live scoreboard
-- Receiving screenshots and heartbeats
-- Logging all participant events
-
----
-
-### 4.2 Participant App
-
-A standard client app downloaded by participants **before** the contest day. Available for Windows and macOS.
-
-Handles:
-
-- LAN server discovery (auto or via join code)
-- Secure connection to the local server
-- Launching an embedded, restricted browser
-- Enforcing fullscreen / kiosk mode
-- Logging focus switches
-- Capturing and uploading periodic screenshots
-- Sending heartbeat signals to the server
-
-> Behaves like Safe Exam Browser but is fully integrated into the contest ecosystem.
-
----
-
-### 4.3 Admin Dashboard
-
-Web-based panel served locally by the organizer app.
-
-Capabilities:
-
-- Create and configure contests
-- Upload problems and testcases
-- Start / stop the contest
-- View live submissions and verdicts
-- Rejudge individual submissions
-- View and manage the live scoreboard
-- Monitor participant activity (screenshots, focus events, idle status)
-
----
-
-## 5. Judge Subsystem
-
-This is the most critical internal component.
-
-### Submission Flow
-
-```
-Submission received
-       ↓
-Stored in DB
-       ↓
-Pushed to queue
-       ↓
-Worker picks job
-       ↓
-Compile inside sandbox
-       ↓
-Run against all testcases
-       ↓
-Generate verdict
-       ↓
-Store result
-       ↓
-Trigger scoreboard update
-```
-
-### Sandbox Enforcement
-
-Every submission must be isolated with the following hard limits:
-
-|Constraint|Enforced|
-|---|---|
-|Time limit|✅|
-|Memory limit|✅|
-|CPU limit|✅|
-|Process count limit|✅|
-|Network access|❌ Blocked|
-|Filesystem access|❌ Isolated|
-
-### MVP Implementation Strategy
-
-- Container-based sandbox (Docker)
-- 4–8 parallel judge workers (configurable)
-- Submission queue with overflow handling
-- Reject submissions gracefully when server is overloaded
-
-### Supported Languages (Initial)
-
-- C++
-- Python
-- Java
-
----
-
-## 6. Deployment Flow
-
-### Before the Contest (Admin)
-
-1. Log in to the cloud web platform
-2. Create a contest and configure settings
-3. Upload problems and testcases
-4. Generate and download the contest package (server bundle)
-
-### On Contest Day (Organizer Setup)
-
-1. Open the organizer app on the laptop
-2. Click **"Start Server"**
-3. App displays the LAN IP and join code
-
-### Participants Joining
-
-1. Open the participant client app
-2. Enter the join code **or** use auto-discovery
-3. Contest begins in fullscreen kiosk mode
-
----
-
-## 7. MVP Scope
-
-The following must be complete and stable before any additional features are added.
-
-### 7.1 Contest Engine
-
-- LAN API server
-- Problem viewer UI
-- Code submission system
-- Automated judge
-- ICPC-style scoring (penalty-based)
-- Real-time scoreboard via WebSockets
-
-### 7.2 Admin Dashboard
-
-- Contest creation and management
-- Problem + testcase upload
-- Start / stop contest controls
-- Submission viewer with rejudge option
-- Scoreboard view
-
-### 7.3 Participant Client
-
-- Fullscreen enforcement
-- No URL bar or external navigation
-- Focus change detection and logging
-- Periodic screenshot upload
-- Heartbeat signal
-
-### 7.4 Network
-
-- Fully LAN-based operation
-- No internet dependency
-- Support for 50–100 concurrent participants
-- Auto server discovery or join-code-based connection
-
-> **Out of scope for MVP:** AI-based cheating detection, advanced behavioral analytics, distributed judging, partial scoring, function-based problems.
-
----
-
-## 8. MVP+ Differentiators
-
-Features that go beyond MVP and set this apart from SEB + Codeforces combinations.
-
-### 8.1 Integrated Monitoring Panel
-
-Admins get a unified real-time view of all participants:
-
-- Focus switch count per participant
-- Screenshot grid (all participants visible at once)
-- Active / idle status
-- Submission frequency
-- Live submission stream
-
-> Safe Exam Browser provides none of this centralized visibility.
-
-### 8.2 Flexible Question Types
-
-Beyond standard competitive programming:
-
-- Standard I/O problems
-- Function-based problems (LeetCode style)
-- Partial scoring
-- Manual grading option
-- Hackathon-style evaluation submissions
-
-### 8.3 Full Offline Mode
-
-The entire contest — judging, scoreboard, monitoring — runs without any internet connection. This is the primary differentiator for campus environments with unreliable connectivity.
-
----
-
-## 9. Performance Targets
-
-|Metric|Target|
-|---|---|
-|Concurrent users|100|
-|Peak submissions|~100 / minute|
-|Average compile time|< 2 seconds|
-|Server uptime|No crashes during contest|
-
-### Strategy to Hit Targets
-
-- Cap concurrent judge workers (prevents CPU exhaustion)
-- Submission queue absorbs burst load
-- Graceful rejection with feedback if queue is full
-- Continuous CPU/memory monitoring during the contest
-
----
-
-## 10. Security Model
-
-This is a **realistic** security model designed for campus environments, not a military-grade lockdown.
-
-### What Is Secured
-
-|Layer|Mechanism|
-|---|---|
-|Network|LAN isolation — no internet during contest|
-|Browser|Embedded restricted browser, no external navigation|
-|Focus|Logged and flagged on every switch|
-|Visual|Periodic screenshots sent to admin|
-|Human|Admin invigilation via monitoring dashboard|
-
-### What This Is Not
-
-- Not a kernel-level lockdown
-- Not bypass-proof
-- Not designed to stop a determined, technically sophisticated attacker
-
-The goal is to raise the cost of cheating to the point where it becomes impractical in a supervised exam setting.
-
----
-
-## 11. Known Technical Risks
-
-|Risk|Mitigation|
-|---|---|
-|Sandbox escape from malicious code|Strict container resource limits + process isolation|
-|Resource exhaustion (CPU/memory bombs)|Hard limits + queue overflow handling|
-|Shortcut / OS-level bypass on Windows/macOS|Extensive testing per platform, known limitation documented|
-|Network instability on LAN|Heartbeat detection + reconnect logic|
-|Database corruption under high load|Write-ahead logging, stress testing, recovery mechanisms|
-
----
-
-## 12. Technology Stack
-
-> This is the suggested stack. Final decisions are not locked in.
-
-| Layer                         | Technology                                       |
-| ----------------------------- | ------------------------------------------------ |
-| Backend                       | Go                                               |
-| Database                      | SQLite                                           |
-| Sandbox                       | Docker-based container                           |
-| Frontend (Admin + Contest UI) | React                                            |
-| Participant App               | Electron (cross-platform)                        |
-| Realtime                      | WebSockets (scoreboard + monitoring)             |
-| Native APIs                   | Focus detection, screenshot capture via Electron |
-
----
-
-## 13. Long-Term Vision
-
-A plug-and-play campus assessment infrastructure with the following properties:
-
-- **Installs in under 10 minutes** on any standard laptop
-- **Handles 100 concurrent users** without manual tuning
-- **Requires minimal technical expertise** from the organizer
-- **Provides structured monitoring** with a real audit trail
-- **Operates entirely offline** when needed
-
-The end goal is to make conducting a fair, monitored, offline coding assessment as easy as starting a single application.
-
----
-
-## 14. Competitive Advantage
-
-### vs. Codeforces + Safe Exam Browser
-
-|Feature|CF + SEB|This Platform|
+| Repo | Role | When it runs |
 |---|---|---|
-|Works offline|❌|✅|
-|Integrated monitoring|❌|✅|
-|Single deployment unit|❌|✅|
-|No external infra dependency|❌|✅|
-|Flexible question formats|❌|✅|
+| [CampusCode-Cloud](../CampusCode-Cloud) | Contest authoring. The organiser creates a contest, writes problems and test cases, and downloads a **bundle** for their platform containing this server, the contest package and a Docker setup script. Participants download the client app there too. | Before the contest, with internet |
+| **CampusCode-Server** (this repo) | Reads the package and hosts the contest: auth, problems, sandboxed judging, scoreboard, admin dashboard. | During the contest, on the organiser's laptop, LAN only |
+| [CampusCode-Client](../CampusCode-Client) | The participant's Electron app: a locked-down code editor with problem statements, submissions and a live scoreboard. | During the contest, on each participant's machine |
 
-### vs. DOMjudge
-
-|Feature|DOMjudge|This Platform|
-|---|---|---|
-|Easy installation|❌ Complex|✅ One executable|
-|Windows / macOS support|⚠️ Limited|✅ Native|
-|Designed for small colleges|❌|✅|
-|Integrated participant client|❌|✅|
+```mermaid
+graph LR
+    Org["Organiser"] --> Cloud["CampusCode-Cloud<br/>(author contest, download bundle)"]
+    Cloud -- "bundle: server + contest-package.zip<br/>+ Docker setup script" --> Server
+    subgraph Laptop["Organiser laptop (offline, LAN)"]
+        Server["CampusCode-Server<br/>API + judge + admin dashboard"]
+        Docker["Docker<br/>(sandboxed runs)"]
+        DB[("SQLite")]
+        Server --> Docker
+        Server --> DB
+    end
+    Server -- "REST + WebSocket over LAN" --> C1["CampusCode-Client<br/>participant 1"]
+    Server -- "REST + WebSocket over LAN" --> C2["CampusCode-Client<br/>participant N"]
+```
 
 ---
 
-_Last updated: March 2026 — Pre-development reference draft._
+## Running a contest
+
+All of this starts from the bundle you download on the Cloud app. The full walkthrough, including the setup scripts, is in the [CampusCode-Cloud README](../CampusCode-Cloud#setting-up-the-organisers-laptop). In short:
+
+1. **Once, with internet:** run the bundle's setup script. It checks that [Docker Desktop](https://www.docker.com/products/docker-desktop/) is running and pulls the judge images (`gcc:14`, `python:3.12-slim`, `eclipse-temurin:21-jdk`).
+2. **On contest day, offline:** start the server (`launch.command` on macOS, `campuscode-server.exe` on Windows). On first run it extracts `contest-package.zip`, creates the database, starts the judge workers, and opens the admin dashboard at `http://localhost:8080`.
+3. Log in with the admin username and password you chose when you created the contest.
+4. **Teams** tab: register each team and hand out its login code.
+5. Participants install the client, enter the laptop's LAN IP address (the server listens on port `8080`), and sign in.
+6. **Contest** tab: enter the duration and start the contest.
+
+---
+
+## What the server does
+
+### Contest lifecycle
+- Loads the contest from `contest-package.zip`, extracted once into `server_data/contest/` on first run. Restarts never overwrite it.
+- The organiser drives a state machine from the dashboard: `pending → active ⇄ paused → ended`, with a reset back to `pending`.
+- **Start** takes a duration (default 180 minutes) and sets the start time to now and the end time to now plus that duration.
+- Participant problem and submission routes return `403` unless the contest is `active` and inside its time window.
+- Contest state is saved to the database, so a restart resumes where it left off.
+
+### Teams and authentication
+- **Admin-registered teams.** The admin registers a team and gets a generated login code. There is no self-signup.
+- **Device binding.** A team's first login binds it to that device (`X-Device-ID` header). Logging in from a different device is refused and creates a **device override request** for the admin to approve or reject. Approving it rebinds the team and ends its old sessions.
+- **Sessions.** Bearer tokens that last 6 hours. A new login deactivates the team's previous sessions, so there is one live session per team.
+- **Team status.** The admin can set a team to `enabled`, `disabled` or `disqualified`. Disqualified teams can't log in or submit and are hidden from the scoreboard.
+- **Admin credentials** come from the contest package's `manifest.json`, not a user table.
+
+### Judging
+- **Languages:** C++17, Python 3.12 and Java 21.
+- **Docker sandbox.** Every compile and run is a throwaway `docker run --rm` container.
+  - Execution uses `--network=none`, `--cpus=0.5`, `--pids-limit=64`, and the problem's own memory limit.
+  - Compilation is capped at 512 MB, 1 CPU and 30 seconds.
+  - The time limit is per test case and comes from each problem's `meta.json`.
+- **Queue and workers.** Submissions are saved, queued and judged by a pool of workers. The pool defaults to 8 workers and can be set with the `JUDGE_WORKERS` environment variable. The queue buffers 100 submissions.
+- **Verdicts:** `AC`, `WA`, `TLE`, `RE`, `CE` and `IE` (internal error, for example a missing test case). Test cases run in order and judging stops at the first `WA`, `RE` or `CE`. Status moves `Queued → Running → Done`.
+- **Rejudge.** The admin can requeue any submission.
+- **"Run" scratchpad.** `POST /run` compiles and runs code against custom input with no database writes and no verdict. It's limited to 10 seconds and 256 MB, and only 3 can run at once. Extra requests get `429`.
+
+### Scoreboard
+- ICPC-style ranking: most problems solved, then lowest penalty, then earliest last accepted time.
+- Penalty = minutes from contest start to the first `AC`, plus **20 minutes per wrong attempt** on that problem. Only `WA` verdicts count as wrong attempts. `CE`, `RE` and `TLE` are never penalised, and `CE` and `RE` don't update the scoreboard at all. Attempts after a problem is solved are ignored.
+- **Live.** `GET /scoreboard` returns JSON over plain HTTP. If the client makes a WebSocket upgrade request, the connection stays open and receives a full snapshot on connect and a push after every judged submission.
+- **Time sync.** The same WebSocket broadcasts `time_sync` messages (contest status, server time, end time) when the admin changes the contest and every 60 seconds. Clients use them to keep their timers consistent.
+
+### Admin dashboard
+An embedded React app served at `http://localhost:8080/`. The server opens it in the default browser on startup.
+
+| Tab | What you can do |
+|---|---|
+| Submissions | Browse all submissions, read code and compile logs, rejudge |
+| Teams | Register teams and see their login codes; set enabled, disabled or disqualified |
+| Scoreboard | Live scoreboard over WebSocket |
+| Contest | Start (with a duration), pause, resume, end or reset the contest |
+| Overrides | Approve or reject device-change requests |
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    Client["CampusCode-Client<br/>(Electron)"] -->|HTTP / WS| API
+    Dash["Admin dashboard<br/>(React, embedded)"] -->|HTTP / WS| API
+
+    subgraph Binary["Single Go binary (:8080)"]
+        API["api/<br/>routes, CORS, logging"] --> MW["handlers/middleware<br/>RequireAuth · RequireAdminAuth · RequireContestOpen"]
+        MW --> H["api/handlers"]
+        H --> Svc["service/<br/>business rules"]
+        Svc --> Repo["db/<br/>GORM repository"]
+        Svc --> Q["buffered queue (chan)"]
+        Q --> W["judge workers (N)"]
+        W --> Repo
+        W --> WS["api/ws<br/>scoreboard + time_sync broadcast"]
+        Contest["contest/<br/>mutex-guarded live state"] --- MW
+        Contest --- Svc
+    end
+
+    Repo --> SQLite[("server_data/runtime/db.sqlite")]
+    W -->|"docker run --rm"| Sandbox["Docker containers<br/>gcc:14 · python:3.12-slim · eclipse-temurin:21"]
+    Svc --> FS["server_data/<br/>contest (read-only) · runtime (mutable)"]
+```
+
+Request flow: `handler → service → db`. Handlers deal with HTTP only, services hold the rules, and the `db` package is the only code that touches GORM.
+
+### Filesystem layout
+
+```
+<binary dir>/
+├── campuscode-server(.exe)
+├── contest-package.zip          # from CampusCode-Cloud; extracted on first run
+└── server_data/
+    ├── contest/                 # read-only during the contest
+    │   ├── manifest.json        # contest name, duration, problem list, admin credentials
+    │   └── problems/<id>/
+    │       ├── meta.json        # time_limit_ms, memory_limit_mb
+    │       ├── statement.md     # shown to participants
+    │       └── tests/           # 1.in / 1.out, 2.in / 2.out, ...
+    └── runtime/                 # mutable
+        ├── db.sqlite
+        ├── submissions/<id>/    # source code and compile.log (kept)
+        └── workspaces/<id>/     # per-judging scratch dir (deleted afterwards)
+```
+
+The server changes into the binary's own directory at startup, so double-clicking it works the same on Windows, macOS and Linux.
+
+### Key decisions
+
+| Decision | Why | Trade-off |
+|---|---|---|
+| **SQLite (pure-Go driver, no CGO)** | Zero setup, one file, and the binary cross-compiles cleanly for every OS. | One writer. Fine for a single-room contest, not for multi-node scale. |
+| **In-process buffered channel as the queue** | No broker to install on an offline laptop. | The queue is lost on crash (see [Known limitations](#known-limitations)). |
+| **Docker per run** | Real isolation of untrusted code with no network. | Docker must be installed and running. Container startup adds latency per test case. |
+| **Single binary with `go:embed` dashboard** | Organisers run one thing. | The dashboard must be built before the Go binary. |
+| **WebSocket push for scoreboard and timer** | Live updates without every client polling. | In-memory connection registry. Single server only. |
+| **Service layer between handlers and DB** | Rules (scoring, device binding, overrides) are testable and not tied to HTTP. | A little more indirection. |
+
+---
+
+## API
+
+All routes are on port `8080`. Authenticated routes need `Authorization: Bearer <session_token>`.
+
+**Participant**
+
+| Method | Route | Notes |
+|---|---|---|
+| `POST` | `/login` | Body: `name`, `login_code`. Requires an `X-Device-ID` header. Returns `session_token`. |
+| `GET` | `/contest` | Current contest state and times |
+| `GET` | `/problems` | Problem list. Contest must be open. |
+| `GET` | `/problems/{id}` | Statement (markdown), time and memory limits. Contest must be open. |
+| `POST` | `/submit` | Body: `problem_id`, `language` (`cpp`, `python` or `java`), `code`. The team comes from the session. Returns `submission_id` with status `Queued`. Contest must be open. |
+| `GET` | `/submission/{id}` | A team's own submission with its code and verdict |
+| `GET` | `/submissions/me` | Own submissions, optional `?problem_id=` |
+| `POST` | `/run` | Ad-hoc run: `language`, `code`, `input`. Contest must be open. |
+| `GET` | `/scoreboard` | JSON, or a live WebSocket feed if upgraded |
+| `GET` | `/health` | Liveness probe |
+
+**Admin** (token from `POST /admin/login` with `user_name` and `login_code`; the WebSocket handshake can pass `?token=`)
+
+| Method | Route | Notes |
+|---|---|---|
+| `POST` | `/register` | Create a team and receive its login code |
+| `GET` | `/admin/teams` | List teams |
+| `PATCH` | `/admin/teams/{id}` | `status`: `enabled`, `disabled` or `disqualified` |
+| `GET` | `/admin/submissions`, `/admin/submissions/{id}` | List submissions, or get one with its code and compile log |
+| `POST` | `/admin/submissions/{id}/rejudge` | Requeue a submission |
+| `GET` | `/admin/overrides` | Pending and past device-change requests |
+| `POST` | `/admin/overrides/{id}` | Body: `action` is `approve` or `reject` |
+| `GET` / `PATCH` | `/admin/contest` | Read or change status, `start_time`, `end_time` |
+| `GET` | `/admin/scoreboard` | Same as `/scoreboard` |
+
+---
+
+## For maintainers
+
+The bundles on the Cloud app contain binaries built from this repo. To build one, build the dashboard first (it is embedded at compile time), then the server:
+
+```bash
+cd Frontend && npm install && npm run build   # output goes to Backend/api/web/dist
+cd ../Backend && go build -o campuscode-server .
+```
+
+This needs Go 1.25+ and Node.js, and it cross-compiles without extra toolchains because there's no CGO.
+
+[Backend/testing/](Backend/testing/) has scripts to generate a fixture contest and replay a realistic multi-team contest with AC, WA, CE and RE cases. See [README_TESTING.md](Backend/testing/README_TESTING.md) and [README_CURL_SEQUENCE.md](Backend/testing/README_CURL_SEQUENCE.md). [Backend/judge/README.md](Backend/judge/README.md) holds the original design notes. It describes a wider plan than what's built, so treat the code as the source of truth.
+
+```
+Backend/
+├── main.go, startup.go      # wiring, package extraction, dashboard launcher
+├── api/                     # routes, CORS, embedded dashboard, WebSocket hub
+│   ├── handlers/            # HTTP handlers and auth/contest-gate middleware
+│   └── ws/                  # scoreboard and time_sync broadcast
+├── service/                 # business rules (auth, teams, submissions, overrides, contest, run)
+├── judge/                   # queue, workers, Docker execution, problem/manifest loading
+├── db/                      # persistence (GORM repository)
+├── models/                  # entities, enums, DTOs, scoring rule
+├── contest/                 # mutex-guarded live contest state
+├── utils/                   # output normalisation, token generation, helpers
+└── testing/                 # fixtures and replay scripts
+Frontend/                    # admin dashboard (React + Vite), builds into Backend/api/web/dist
+```
+
+---
+
+## Known limitations
+
+- **No proctoring or monitoring yet.** Screenshots, focus-switch logging, idle detection and LAN auto-discovery or join codes are not implemented. Participants enter the server's IP address by hand, and the client app handles kiosk lockdown.
+- **The contest name and duration from the package aren't applied.** The contest starts as `pending` with a default title. The duration comes from what the organiser enters when pressing Start.
+- **Judging needs Docker on the host.** If Docker isn't running, compiles fail as `CE` and runs as `RE`, so a missing Docker looks like a participant error. Run the setup script and keep Docker Desktop open.
+- **The queue lives in memory.** Submissions that are queued or running when the server crashes stay in their last status. Use the admin rejudge to recover them.
+- **Rejudge doesn't recompute scoring.** It re-runs the verdict, but scoreboard stats are only updated on the first judging.
+- **A time limit exceeded on one test case doesn't fail the submission.** The judge records the `TLE` for that test, carries on to the next test, and returns `AC` if the rest pass. A solution that is too slow on some tests can therefore be accepted. This is a known bug in the judge loop.
+- **Compilation isn't network-isolated** (only execution is).
+- **Three languages only:** C++, Python and Java.
+- **Security suits a trusted LAN.** CORS is `*`, there is no TLS, and admin credentials are in plain text in the package's `manifest.json`. `/scoreboard` is public to anyone on the network. Don't expose the server to the internet.
+- **Port `8080` is fixed**, and there is no logout endpoint (sessions expire after 6 hours).
+- **The login response has no `team_id`.** It returns only `session_token`, so a client that wants to know its own team ID has to get it another way.

@@ -1,7 +1,0 @@
-code.cpp: In function 'int main()':
-code.cpp:11:16: error: expected ';' before 'return'
-   11 |     cout << a+b
-      |                ^
-      |                ;
-   12 |     return 0;
-      |     ~~~~~~      
