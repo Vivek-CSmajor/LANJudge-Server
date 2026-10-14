@@ -1,5 +1,7 @@
 # LANJudge Server
 
+**DISCLAIMER : **This is an AI generated README.md , Maybe one day when i am in the mood, i ll write it out myself because its currently very shitty. But hey, atleast the backend code is written totally by hand.
+
 **The offline judge, API and admin dashboard that run a coding contest from a single organiser laptop.**
 
 LANJudge Server is the on-site half of LANJudge: a LAN-based coding contest platform for universities, placement drives and lab exams. It ships as **one Go binary** with the admin dashboard embedded in it. Once it has a contest package, it needs **no internet** to register teams, serve problems, judge code in Docker sandboxes, keep a live scoreboard, and let the organiser control the contest.
