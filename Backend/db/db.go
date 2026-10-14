@@ -1,7 +1,7 @@
 package db
 
 import (
-	"campuscode/models"
+	"lanjudge/models"
 	"log"
 
 	"github.com/glebarez/sqlite" // pure-Go SQLite driver — no CGO, so the binary cross-compiles cleanly for every platform

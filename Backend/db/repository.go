@@ -1,7 +1,7 @@
 package db
 
 import (
-	"campuscode/models"
+	"lanjudge/models"
 	"log"
 	"sync"
 	"time"

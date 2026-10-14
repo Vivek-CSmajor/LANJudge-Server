@@ -2,8 +2,8 @@ package judge
 
 import (
 	"bytes"
-	"campuscode/models"
-	"campuscode/utils"
+	"lanjudge/models"
+	"lanjudge/utils"
 	"context"
 	"fmt"
 	"log"

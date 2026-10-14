@@ -1,4 +1,4 @@
-# CampusCode — Developer Reference Documentation
+# LANJudge — Developer Reference Documentation
 
 > **Internal reference. Pre-release v0.1.0. Last updated May 2026.** This document covers everything: architecture, file structure, DB schema, auth flow, API endpoints, judge engine, build order, and design decisions. Refer here before asking questions.
 
@@ -23,7 +23,7 @@
 
 ## 1. Product Overview
 
-CampusCode is an **offline-capable, LAN-based secure coding contest and assessment platform** for universities and campus placement drives.
+LANJudge is an **offline-capable, LAN-based secure coding contest and assessment platform** for universities and campus placement drives.
 
 It is **not** a Codeforces clone. It is **not** an enterprise proctoring tool. It is a plug-and-play, single-executable deployment system built for simplicity, reliability, and full offline operation.
 
@@ -143,7 +143,7 @@ server_data/
 ### Directory Layout
 
 ```
-CampusCode/
+LANJudge/
 ├── main.go                         ← wiring only, zero logic
 ├── go.mod / go.sum
 │
@@ -732,4 +732,4 @@ Build the participant app AFTER the API layer is complete and the admin dashboar
 
 ---
 
-_CampusCode — Internal Developer Reference — Pre-release v0.1.0 — May 2026_ 
+_LANJudge — Internal Developer Reference — Pre-release v0.1.0 — May 2026_ 

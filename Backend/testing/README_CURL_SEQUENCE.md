@@ -1,11 +1,11 @@
-# CampusCode Sequential Curl Test Flow
+# LANJudge Sequential Curl Test Flow
 
 Use this when you want deterministic testing **after** runtime is created by app startup.
 
 ## 0) One-time prep per reset
 
 ```bash
-cd CampusCode
+cd LANJudge
 ./testing/generate_server_data.sh
 ```
 

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"campuscode/utils"
+	"lanjudge/utils"
 	"net/http"
 	"strconv"
 )

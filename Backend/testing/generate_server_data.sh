@@ -13,8 +13,8 @@ mkdir -p "$CONTEST_DIR/problems"
 echo "[2/5] Writing contest manifest..."
 cat > "$CONTEST_DIR/manifest.json" <<'JSON'
 {
-  "contest_id": "campuscode_stress_2026_01",
-  "name": "CampusCode Stress Fixture Contest",
+  "contest_id": "lanjudge_stress_2026_01",
+  "name": "LANJudge Stress Fixture Contest",
   "duration_minutes": 180,
   "problems": [
     { "id": "1", "title": "Simple Addition", "path": "problems/1" },

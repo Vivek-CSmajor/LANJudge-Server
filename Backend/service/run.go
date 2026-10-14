@@ -1,7 +1,7 @@
 package service
 
 import (
-	"campuscode/judge"
+	"lanjudge/judge"
 )
 
 type RunService struct {

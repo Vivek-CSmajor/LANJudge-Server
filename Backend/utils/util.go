@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"campuscode/models"
+	"lanjudge/models"
 	"crypto/rand"
 	"encoding/json"
 	"sync"

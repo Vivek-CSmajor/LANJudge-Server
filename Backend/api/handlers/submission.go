@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"campuscode/models"
-	"campuscode/service"
-	"campuscode/utils"
+	"lanjudge/models"
+	"lanjudge/service"
+	"lanjudge/utils"
 	"encoding/json"
 	"errors"
 	"net/http"

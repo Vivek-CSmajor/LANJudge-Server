@@ -1,9 +1,9 @@
 package service
 
 import (
-	"campuscode/db"
-	"campuscode/models"
-	"campuscode/utils"
+	"lanjudge/db"
+	"lanjudge/models"
+	"lanjudge/utils"
 	"log"
 )
 

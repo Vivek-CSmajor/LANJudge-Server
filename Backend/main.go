@@ -1,11 +1,11 @@
 package main
 
 import (
-	"campuscode/api"
-	"campuscode/api/handlers"
-	"campuscode/contest"
-	"campuscode/db"
-	"campuscode/judge"
+	"lanjudge/api"
+	"lanjudge/api/handlers"
+	"lanjudge/contest"
+	"lanjudge/db"
+	"lanjudge/judge"
 	"fmt"
 	"log"
 	"os"

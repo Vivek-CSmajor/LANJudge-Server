@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"campuscode/contest"
-	"campuscode/db"
-	"campuscode/models"
+	"lanjudge/contest"
+	"lanjudge/db"
+	"lanjudge/models"
 
 	"github.com/gorilla/websocket"
 )

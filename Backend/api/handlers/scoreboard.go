@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"campuscode/api/ws"
-	"campuscode/utils"
+	"lanjudge/api/ws"
+	"lanjudge/utils"
 	"encoding/json"
 
 	"log"

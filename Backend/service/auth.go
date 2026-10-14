@@ -1,10 +1,10 @@
 package service
 
 import (
-	"campuscode/db"
-	"campuscode/judge"
-	"campuscode/models"
-	"campuscode/utils"
+	"lanjudge/db"
+	"lanjudge/judge"
+	"lanjudge/models"
+	"lanjudge/utils"
 	"fmt"
 	"log"
 	"time"

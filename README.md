@@ -1,47 +1,47 @@
-# CampusCode Server
+# LANJudge Server
 
 **The offline judge, API and admin dashboard that run a coding contest from a single organiser laptop.**
 
-CampusCode Server is the on-site half of CampusCode: a LAN-based coding contest platform for universities, placement drives and lab exams. It ships as **one Go binary** with the admin dashboard embedded in it. Once it has a contest package, it needs **no internet** to register teams, serve problems, judge code in Docker sandboxes, keep a live scoreboard, and let the organiser control the contest.
+LANJudge Server is the on-site half of LANJudge: a LAN-based coding contest platform for universities, placement drives and lab exams. It ships as **one Go binary** with the admin dashboard embedded in it. Once it has a contest package, it needs **no internet** to register teams, serve problems, judge code in Docker sandboxes, keep a live scoreboard, and let the organiser control the contest.
 
 It is not a Codeforces clone or an online judge, and it isn't a proctoring suite. It is a plug-and-play contest host for a room full of students on one network.
 
-**You don't download or build this repo to run a contest.** Organisers get the ready-to-run server, already bundled with their contest, from the hosted CampusCode Cloud app:
+**You don't download or build this repo to run a contest.** Organisers get the ready-to-run server, already bundled with their contest, from the hosted LANJudge Cloud app:
 
 **<http://65.0.183.82:8081>**
 
 ---
 
-## The CampusCode project
+## The LANJudge project
 
-CampusCode is three repositories that work in sequence:
+LANJudge is three repositories that work in sequence:
 
 | Repo | Role | When it runs |
 |---|---|---|
-| [CampusCode-Cloud](../CampusCode-Cloud) | Contest authoring. The organiser creates a contest, writes problems and test cases, and downloads a **bundle** for their platform containing this server, the contest package and a Docker setup script. Participants download the client app there too. | Before the contest, with internet |
-| **CampusCode-Server** (this repo) | Reads the package and hosts the contest: auth, problems, sandboxed judging, scoreboard, admin dashboard. | During the contest, on the organiser's laptop, LAN only |
-| [CampusCode-Client](../CampusCode-Client) | The participant's Electron app: a locked-down code editor with problem statements, submissions and a live scoreboard. | During the contest, on each participant's machine |
+| [LANJudge-Cloud](../LANJudge-Cloud) | Contest authoring. The organiser creates a contest, writes problems and test cases, and downloads a **bundle** for their platform containing this server, the contest package and a Docker setup script. Participants download the client app there too. | Before the contest, with internet |
+| **LANJudge-Server** (this repo) | Reads the package and hosts the contest: auth, problems, sandboxed judging, scoreboard, admin dashboard. | During the contest, on the organiser's laptop, LAN only |
+| [LANJudge-Client](../LANJudge-Client) | The participant's Electron app: a locked-down code editor with problem statements, submissions and a live scoreboard. | During the contest, on each participant's machine |
 
 ```mermaid
 graph LR
-    Org["Organiser"] --> Cloud["CampusCode-Cloud<br/>(author contest, download bundle)"]
+    Org["Organiser"] --> Cloud["LANJudge-Cloud<br/>(author contest, download bundle)"]
     Cloud -- "bundle: server + contest-package.zip<br/>+ Docker setup script" --> Server
     subgraph Laptop["Organiser laptop (offline, LAN)"]
-        Server["CampusCode-Server<br/>API + judge + admin dashboard"]
+        Server["LANJudge-Server<br/>API + judge + admin dashboard"]
         Docker["Docker<br/>(sandboxed runs)"]
         DB[("SQLite")]
         Server --> Docker
         Server --> DB
     end
-    Server -- "REST + WebSocket over LAN" --> C1["CampusCode-Client<br/>participant 1"]
-    Server -- "REST + WebSocket over LAN" --> C2["CampusCode-Client<br/>participant N"]
+    Server -- "REST + WebSocket over LAN" --> C1["LANJudge-Client<br/>participant 1"]
+    Server -- "REST + WebSocket over LAN" --> C2["LANJudge-Client<br/>participant N"]
 ```
 
 ---
 
 ## Running a contest
 
-All of this starts from the bundle you download on the Cloud app. The full walkthrough, including the setup scripts, is in the [CampusCode-Cloud README](../CampusCode-Cloud#setting-up-the-organisers-laptop). In short:
+All of this starts from the bundle you download on the Cloud app. The full walkthrough, including the setup scripts, is in the [LANJudge-Cloud README](../LANJudge-Cloud#setting-up-the-organisers-laptop). In short:
 
 1. **Once, with internet:** run the bundle's setup script. It checks that [Docker Desktop](https://www.docker.com/products/docker-desktop/) is running and pulls the judge images (`gcc:14`, `python:3.12-slim`, `eclipse-temurin:21-jdk`).
 2. **On contest day, offline:** start the server (`launch.command` on macOS, `campuscode-server.exe` on Windows). On first run it extracts `contest-package.zip`, creates the database, starts the judge workers, and opens the admin dashboard at `http://localhost:8080`.
@@ -102,7 +102,7 @@ An embedded React app served at `http://localhost:8080/`. The server opens it in
 
 ```mermaid
 graph TD
-    Client["CampusCode-Client<br/>(Electron)"] -->|HTTP / WS| API
+    Client["LANJudge-Client<br/>(Electron)"] -->|HTTP / WS| API
     Dash["Admin dashboard<br/>(React, embedded)"] -->|HTTP / WS| API
 
     subgraph Binary["Single Go binary (:8080)"]
@@ -130,7 +130,7 @@ Request flow: `handler → service → db`. Handlers deal with HTTP only, servic
 ```
 <binary dir>/
 ├── campuscode-server(.exe)
-├── contest-package.zip          # from CampusCode-Cloud; extracted on first run
+├── contest-package.zip          # from LANJudge-Cloud; extracted on first run
 └── server_data/
     ├── contest/                 # read-only during the contest
     │   ├── manifest.json        # contest name, duration, problem list, admin credentials

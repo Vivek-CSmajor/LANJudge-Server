@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"campuscode/contest"
-	"campuscode/db"
-	"campuscode/models"
+	"lanjudge/contest"
+	"lanjudge/db"
+	"lanjudge/models"
 	"context"
 	"log"
 	"net/http"

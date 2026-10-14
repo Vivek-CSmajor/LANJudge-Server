@@ -1,4 +1,4 @@
-module campuscode
+module lanjudge
 
 go 1.25.0
 

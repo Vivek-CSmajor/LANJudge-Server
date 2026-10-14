@@ -1,9 +1,9 @@
 package service
 
 import (
-	"campuscode/db"
-	"campuscode/judge"
-	"campuscode/models"
+	"lanjudge/db"
+	"lanjudge/judge"
+	"lanjudge/models"
 	"fmt"
 	"os"
 	"path/filepath"

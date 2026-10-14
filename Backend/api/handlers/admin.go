@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"campuscode/api/ws"
-	"campuscode/contest"
-	"campuscode/judge"
-	"campuscode/models"
-	"campuscode/service"
-	"campuscode/utils"
+	"lanjudge/api/ws"
+	"lanjudge/contest"
+	"lanjudge/judge"
+	"lanjudge/models"
+	"lanjudge/service"
+	"lanjudge/utils"
 	"encoding/json"
 	"errors"
 	"net/http"

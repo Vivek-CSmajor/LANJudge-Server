@@ -1,10 +1,10 @@
 package judge
 
 import (
-	"campuscode/api/ws"
-	"campuscode/contest"
-	"campuscode/db"
-	"campuscode/models"
+	"lanjudge/api/ws"
+	"lanjudge/contest"
+	"lanjudge/db"
+	"lanjudge/models"
 	"log"
 )
 

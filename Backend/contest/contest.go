@@ -1,7 +1,7 @@
 package contest
 
 import (
-	"campuscode/models"
+	"lanjudge/models"
 	"sync"
 	"time"
 )

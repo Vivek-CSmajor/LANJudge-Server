@@ -3,9 +3,9 @@ package api
 import (
 	"log"
 	"net/http"
-	//"campuscode/api/middleware"
-	"campuscode/api/handlers"
-	"campuscode/api/ws"
+	//"lanjudge/api/middleware"
+	"lanjudge/api/handlers"
+	"lanjudge/api/ws"
 )
 
 func cors(next http.Handler) http.Handler {

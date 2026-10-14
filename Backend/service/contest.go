@@ -1,9 +1,9 @@
 package service
 
 import (
-	"campuscode/contest"
-	"campuscode/db"
-	"campuscode/models"
+	"lanjudge/contest"
+	"lanjudge/db"
+	"lanjudge/models"
 )
 
 type ContestService struct {

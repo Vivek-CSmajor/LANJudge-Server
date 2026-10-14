@@ -1,4 +1,4 @@
-# CampusCode Testing Dataset Kit
+# LANJudge Testing Dataset Kit
 
 This folder gives you repeatable seed data and a larger `server_data` filesystem for heavy local testing.
 
@@ -21,7 +21,7 @@ This folder gives you repeatable seed data and a larger `server_data` filesystem
 1) Generate contest fixtures
 
 ```bash
-cd CampusCode
+cd LANJudge
 chmod +x testing/generate_server_data.sh
 ./testing/generate_server_data.sh
 ```

@@ -1,8 +1,8 @@
 package judge
 
 import (
-	"campuscode/db"
-	"campuscode/models"
+	"lanjudge/db"
+	"lanjudge/models"
 	"encoding/json"
 	"fmt"
 	"os"
