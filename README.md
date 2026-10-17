@@ -240,3 +240,7 @@ Frontend/                    # admin dashboard (React + Vite), builds into Backe
 - **Security suits a trusted LAN.** CORS is `*`, there is no TLS, and admin credentials are in plain text in the package's `manifest.json`. `/scoreboard` is public to anyone on the network. Don't expose the server to the internet.
 - **Port `8080` is fixed**, and there is no logout endpoint (sessions expire after 6 hours).
 - **The login response has no `team_id`.** It returns only `session_token`, so a client that wants to know its own team ID has to get it another way.
+
+## License
+
+[MIT](LICENSE) © 2026 Vivek Pandey
